@@ -528,10 +528,13 @@ async function checkApiStatus() {
   const lb  = document.getElementById('api-label');
   try {
     const r = await api('/api/status');
-    dot.className = 'status-dot';
-    lb.textContent = r.ok
-      ? 'SSótica API · Conectado · Dados reais'
-      : 'Backend OK · SSótica com lentidão';
+    if (r.ok) {
+      dot.className = 'status-dot';
+      lb.textContent = 'SSótica API · Conectado · Dados reais';
+    } else {
+      dot.style.background = 'var(--amber)';
+      lb.textContent = 'Backend OK · SSótica: ' + (r.msg || 'verificando');
+    }
   } catch {
     dot.style.background = 'var(--red)';
     dot.style.animation  = 'none';
@@ -539,23 +542,29 @@ async function checkApiStatus() {
   }
 }
 
-// Sincronização completa dos dados reais
 async function syncFromApi() {
   try {
-    // Receitas vencidas
-    const vencidas = await api('/api/receitas/vencidas');
-    if (vencidas && (vencidas.clientes || vencidas.receitas || Array.isArray(vencidas))) {
-      const lista = vencidas.clientes || vencidas.receitas || vencidas;
-      renderExamsFromApi(lista);
-    }
-    // Pós-venda
     const pv = await api('/api/pos-venda');
     if (pv && pv.etapas) {
       window._pvEtapasApi = pv.etapas;
       document.getElementById('pv-total-badge').textContent = pv.totalPosvenda || 0;
     }
-    LOGS.unshift({icon:'✓', text:'Sync automática concluída — dados da SSótica', time:'Agora', ok:true});
+    const vendas = await api('/api/vendas');
+    if (vendas && (vendas.data || Array.isArray(vendas))) {
+      const lista = vendas.data || vendas;
+      document.getElementById('ov-attention').innerHTML = lista.slice(0,4).map(v=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(59,130,196,.07)">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:13px;color:var(--text);font-weight:500">${v.cliente||v.nome_cliente||'Cliente'}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">${v.data||''} · R$ ${(v.valor_total||0).toFixed(2)}</div>
+          </div>
+        </div>`).join('') || '<div style="color:var(--text3);font-size:13px;padding:12px 0">Nenhuma venda recente</div>';
+    }
+    LOGS.unshift({icon:'✓', text:'Sync com SSótica concluída — dados reais', time:'Agora', ok:true});
     document.getElementById('api-ts').textContent = new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('api-label').textContent = 'SSótica API · Conectado · Dados reais';
+    document.getElementById('api-dot').className = 'status-dot';
   } catch(e) {
     LOGS.unshift({icon:'⚠', text:`Erro na sync: ${e.message}`, time:'Agora', ok:false});
   }
