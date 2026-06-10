@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORO Óticas — Integração SSótica API</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --navy:#0B1F3A; --navy2:#122848; --navy3:#1A3560;
+    --blue:#1E4D8C; --blue2:#2563AA; --accent:#3B82C4;
+    --gold:#C9A84C; --gold2:#E8C876;
+    --text:#F0F4FA; --text2:#A8BDD4; --text3:#6B8BAD;
+    --border:rgba(59,130,196,0.18); --border2:rgba(59,130,196,0.35);
+    --green:#22C55E; --amber:#F59E0B; --red:#EF4444; --purple:#A855F7;
+    --card:rgba(18,40,72,0.7);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--navy2);border-bottom:1px solid var(--border);flex-shrink:0;}
+  .brand{font-size:18px;font-weight:700;letter-spacing:3px;color:var(--text);}
+  .brand span{color:var(--gold);}
+  .api-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+  .status-dot.loading{background:var(--amber);border-radius:2px;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  .body{display:flex;flex:1;overflow:hidden;}
+  .sidebar{width:200px;background:var(--navy2);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;overflow-y:auto;}
+  .main{flex:1;overflow-y:auto;padding:20px;}
+
+  .sid-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:0 16px;margin-bottom:6px;margin-top:12px;}
+  .sid-item{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px;transition:all .15s;border:1px solid transparent;margin:0 6px 2px;}
+  .sid-item:hover{background:rgba(59,130,196,.1);color:var(--text2);}
+  .sid-item.active{background:rgba(37,99,170,.25);color:var(--text);border-color:rgba(59,130,196,.25);}
+  .sid-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .sid-badge{margin-left:auto;background:rgba(59,130,196,.2);color:var(--accent);font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;}
+  .sid-badge.warn{background:rgba(245,158,11,.2);color:#FCD34D;}
+
+  .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;}
+  .ph-title{font-size:20px;font-weight:600;}
+  .ph-sub{font-size:12px;color:var(--text3);margin-top:3px;}
+
+  .btn-refresh{display:flex;align-items:center;gap:6px;background:rgba(37,99,170,.2);border:1px solid rgba(59,130,196,.35);color:var(--accent);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .2s;}
+  .btn-refresh:hover{background:rgba(37,99,170,.35);}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;backdrop-filter:blur(10px);}
+  .card-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;}
+  .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+  .stat.blue::before{background:linear-gradient(90deg,var(--blue),var(--accent));}
+  .stat.green::before{background:linear-gradient(90deg,#16A34A,var(--green));}
+  .stat.amber::before{background:linear-gradient(90deg,#B45309,var(--amber));}
+  .stat.purple::before{background:linear-gradient(90deg,#7C3AED,var(--purple));}
+  .stat-label{font-size:10px;color:var(--text3);margin-bottom:6px;}
+  .stat-val{font-size:24px;font-weight:700;line-height:1;}
+  .stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+  .stat-sub.api{color:var(--green);}
+
+  .search-row{display:flex;gap:8px;margin-bottom:14px;}
+  .search-row input{flex:1;background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+  .search-row input:focus{border-color:var(--accent);}
+  .btn-search{background:var(--blue);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;}
+
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;padding:9px 12px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500;}
+  td{padding:11px 12px;border-bottom:1px solid rgba(59,130,196,.07);color:var(--text2);}
+  tr:hover td{background:rgba(59,130,196,.04);}
+
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
+  .b-blue{background:rgba(37,99,170,.2);color:#93C5FD;border:1px solid rgba(37,99,170,.3);}
+  .b-green{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.25);}
+  .b-amber{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.25);}
+  .b-red{background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.25);}
+  .b-gray{background:rgba(107,139,173,.15);color:var(--text3);border:1px solid rgba(107,139,173,.2);}
+
+  .profile-top{display:flex;align-items:center;gap:16px;padding:18px;background:rgba(11,31,58,.5);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;}
+  .avatar-big{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--accent));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;}
+  .profile-name{font-size:17px;font-weight:600;color:var(--text);}
+  .profile-meta{font-size:12px;color:var(--text3);margin-top:2px;}
+
+  .api-call-box{background:rgba(11,31,58,.6);border:1px solid rgba(59,130,196,.2);border-radius:10px;padding:12px;margin-bottom:8px;}
+
+  .tl-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid rgba(59,130,196,.07);}
+  .tl-item:last-child{border-bottom:none;}
+  .tl-left{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0;}
+  .tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+  .tl-line{flex:1;width:1px;background:var(--border);margin-top:4px;}
+  .tl-content{flex:1;}
+  .tl-title{font-size:13px;color:var(--text);font-weight:500;}
+  .tl-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+  .tl-val{font-size:13px;font-weight:600;color:var(--text);text-align:right;}
+  .tl-date{font-size:10px;color:var(--text3);text-align:right;}
+
+  .exam-card{background:rgba(11,31,58,.5);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+  .exam-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .exam-title{font-size:13px;font-weight:600;color:var(--text);}
+  .exam-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .exam-field{background:rgba(18,40,72,.6);border-radius:7px;padding:9px 11px;}
+  .exam-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:3px;}
+  .exam-field-val{font-size:15px;font-weight:600;color:var(--text);}
+
+  .log-entry{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;font-size:12px;margin-bottom:4px;}
+  .log-entry.success{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.15);}
+  .log-entry.error{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);}
+  .log-text{flex:1;color:var(--text2);}
+  .log-time{color:var(--text3);font-size:11px;}
+  .log-status{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;}
+  .log-status.ok{background:rgba(34,197,94,.2);color:#86EFAC;}
+  .log-status.err{background:rgba(239,68,68,.2);color:#FCA5A5;}
+
+  .code-box{background:rgba(6,15,30,.8);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;overflow-x:auto;}
+  .c-key{color:#93C5FD;} .c-str{color:#86EFAC;} .c-num{color:#FCD34D;} .c-comment{color:var(--text3);} .c-method{color:#D8B4FE;}
+
+  .notice{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-left:3px solid var(--gold);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;}
+  .notice strong{color:var(--gold2);}
+
+  .page{display:none;}
+  .page.active{display:block;}
+
+  .progress-bar{height:4px;background:rgba(59,130,196,.15);border-radius:2px;overflow:hidden;margin-top:6px;}
+  .progress-fill{height:100%;border-radius:2px;}
+
+  /* PÓS-VENDA */
+  .pv-pipeline-block{flex:0 0 auto;min-width:100px;padding:10px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative;border-radius:0;}
+  .pv-pipeline-block:first-child{border-radius:10px 0 0 10px;}
+  .pv-pipeline-block:last-child{border-radius:0 10px 10px 0;}
+  .pv-pipeline-block::after{content:'›';position:absolute;right:-6px;top:50%;transform:translateY(-50%);font-size:14px;color:rgba(255,255,255,.25);z-index:1;}
+  .pv-pipeline-block:last-child::after{display:none;}
+  .pv-pipeline-block:hover{filter:brightness(1.15);}
+  .pv-pipeline-name{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;}
+  .pv-pipeline-count{font-size:20px;font-weight:700;}
+  .pv-pipeline-sub{font-size:9px;opacity:.7;margin-top:2px;}
+
+  .pv-step{margin-bottom:14px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+  .pv-step-header{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;transition:background .15s;user-select:none;}
+  .pv-step-header:hover{background:rgba(59,130,196,.06);}
+  .pv-step-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .pv-step-info{flex:1;}
+  .pv-step-title{font-size:14px;font-weight:600;color:var(--text);}
+  .pv-step-desc{font-size:11px;color:var(--text3);margin-top:2px;}
+  .pv-step-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .pv-step-count{font-size:18px;font-weight:700;}
+  .pv-step-chevron{color:var(--text3);font-size:12px;transition:transform .2s;}
+  .pv-step-chevron.open{transform:rotate(180deg);}
+  .pv-step-body{display:none;border-top:1px solid var(--border);}
+  .pv-step-body.open{display:block;}
+
+  /* WHATSAPP TEMPLATE BOX */
+  .wa-box{background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:14px 16px;margin:12px 18px;font-size:13px;color:var(--text2);line-height:1.6;position:relative;}
+  .wa-box-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(37,211,102,.7);font-weight:600;margin-bottom:6px;}
+  .wa-copy-btn{position:absolute;top:12px;right:12px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:rgba(37,211,102,.9);padding:4px 10px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .15s;}
+  .wa-copy-btn:hover{background:rgba(37,211,102,.25);}
+
+  .pv-action-btn{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;font-family:'DM Sans',sans-serif;transition:all .15s;}
+  .pv-btn-wa{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.3);color:#86EFAC;}
+  .pv-btn-wa:hover{background:rgba(37,211,102,.22);}
+  .pv-btn-ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#86EFAC;}
+  .pv-btn-ok:hover{background:rgba(34,197,94,.22);}
+  .pv-btn-view{background:transparent;border-color:var(--border2);color:var(--text3);}
+  .pv-btn-view:hover{background:rgba(59,130,196,.1);color:var(--text2);}
+
+  .contacted-row{opacity:.45;}
+  .contacted-row td:first-child::after{content:' ✓ contatado';font-size:10px;color:var(--green);margin-left:6px;}
+
+  /* MODAL */
+  #modal-overlay{display:none;}
+
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span>ORO</span> Óticas · SSótica API</div>
+  <div class="api-status">
+    <div class="status-dot" id="api-dot"></div>
+    <span id="api-label">SSótica API · Simulado · Conectado</span>
+    <span style="color:var(--border2)">|</span>
+    <span style="color:var(--text3);font-size:11px" id="api-ts"></span>
+  </div>
+</div>
+
+<div class="body">
+  <div class="sidebar">
+    <div class="sid-label">Integração</div>
+    <div class="sid-item active" id="nav-overview" onclick="nav('overview',this)">
+      <div class="sid-dot" style="background:var(--accent)"></div>Visão Geral
+    </div>
+    <div class="sid-item" id="nav-clients" onclick="nav('clients',this)">
+      <div class="sid-dot" style="background:#86EFAC"></div>Buscar Cliente
+      <span class="sid-badge">API</span>
+    </div>
+    <div class="sid-item" id="nav-exams" onclick="nav('exams',this)">
+      <div class="sid-dot" style="background:#FCD34D"></div>Exames Vista
+      <span class="sid-badge warn">3</span>
+    </div>
+    <div class="sid-item" id="nav-purchases" onclick="nav('purchases',this)">
+      <div class="sid-dot" style="background:#93C5FD"></div>Histórico Compras
+    </div>
+    <div class="sid-label">Pós-Venda</div>
+    <div class="sid-item" id="nav-posvenda" onclick="nav('posvenda',this)">
+      <div class="sid-dot" style="background:#F472B6"></div>Fluxo Pós-Venda
+      <span class="sid-badge warn" id="pv-total-badge">0</span>
+    </div>
+    <div class="sid-label">Técnico</div>
+    <div class="sid-item" id="nav-apilog" onclick="nav('apilog',this)">
+      <div class="sid-dot" style="background:#D8B4FE"></div>Log de Chamadas
+    </div>
+    <div class="sid-item" id="nav-code" onclick="nav('code',this)">
+      <div class="sid-dot" style="background:var(--gold)"></div>Como Integrar
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="ph">
+        <div><div class="ph-title">Integração SSótica API</div><div class="ph-sub">Dados em tempo real — demonstração com estrutura real</div></div>
+        <button class="btn-refresh" id="btn-refresh-main" onclick="simulateRefresh()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="refresh-icon"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
+          Atualizar API
+        </button>
+      </div>
+      <div class="notice"><strong>Demo com dados fictícios</strong> — Esta tela mostra exatamente como ficará quando você conectar a API real da SSótica. A estrutura de chamadas, campos e lógica são idênticos ao ambiente de produção.</div>
+      <div class="grid4" style="margin-bottom:14px">
+        <div class="stat blue"><div class="stat-label">Clientes Sincronizados</div><div class="stat-val">248</div><div class="stat-sub api">↑ via API SSótica</div></div>
+        <div class="stat green"><div class="stat-label">Receitas Válidas</div><div class="stat-val">186</div><div class="stat-sub api">Dentro do prazo</div></div>
+        <div class="stat amber"><div class="stat-label">Receitas Vencidas</div><div class="stat-val">41</div><div class="stat-sub" style="color:var(--amber)">Precisam contato</div></div>
+        <div class="stat purple"><div class="stat-label">Última Sync</div><div class="stat-val" style="font-size:16px">Agora</div><div class="stat-sub api">Automático</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title"><div class="sid-dot" style="background:var(--accent)"></div>Endpoints Disponíveis</div>
+          <div id="endpoints-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><div class="sid-dot" style="background:#FCD34D"></div>Clientes com Atenção Hoje</div>
+          <div id="ov-attention"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUSCAR CLIENTE -->
+    <div class="page" id="page-clients">
+      <div class="ph"><div><div class="ph-title">Buscar Cliente na SSótica</div><div class="ph-sub">Consulta em tempo real via API · CPF como chave única</div></div></div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="search-row">
+          <input type="text" id="cpf-input" placeholder="Digite o CPF: ex. 111.111.111-01" onkeydown="if(event.key==='Enter')searchClient()">
+          <button class="btn-search" onclick="searchClient()">Consultar API</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:11px;color:var(--text3)">Exemplos rápidos:</span>
+          <button onclick="loadDemo('111.111.111-01')" style="background:none;border:1px solid var(--border2);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">111.111.111-01 · Ana Beatriz</button>
+          <button onclick="loadDemo('222.222.222-02')" style="background:none;border:1px solid var(--border2);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">222.222.222-02 · Roberto (receita vencida)</button>
+          <button onclick="loadDemo('333.333.333-03')" style="background:none;border:1px solid var(--border2);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">333.333.333-03 · Mariana (resgate)</button>
+        </div>
+      </div>
+      <div id="client-loading" style="display:none;text-align:center;padding:40px;color:var(--text3)">
+        <div style="font-size:13px">⟳ Consultando API SSótica...</div>
+      </div>
+      <div id="client-empty" style="text-align:center;padding:40px;color:var(--text3)">
+        <div style="font-size:32px;margin-bottom:10px">🔍</div>
+        <div style="font-size:13px">Digite um CPF ou clique em um exemplo para consultar</div>
+      </div>
+      <div id="client-result" style="display:none"></div>
+    </div>
+
+    <!-- EXAMES -->
+    <div class="page" id="page-exams">
+      <div class="ph">
+        <div><div class="ph-title">Exames de Vista — Receitas</div><div class="ph-sub">Dados vindos de /receitas/vencidas — atualização automática</div></div>
+        <button class="btn-refresh" onclick="simulateRefresh()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
+          Sincronizar
+        </button>
+      </div>
+      <div class="grid3" style="margin-bottom:14px">
+        <div class="stat green"><div class="stat-label">Receitas Válidas</div><div class="stat-val">186</div><div class="stat-sub api">Dentro do prazo</div></div>
+        <div class="stat amber"><div class="stat-label">Vencendo em 30d</div><div class="stat-val">21</div><div class="stat-sub" style="color:var(--amber)">Contato preventivo</div></div>
+        <div class="stat" style="border-color:rgba(239,68,68,.3)"><div class="stat-label">Receitas Vencidas</div><div class="stat-val" style="color:var(--red)">41</div><div class="stat-sub" style="color:var(--red)">Ação imediata</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="sid-dot" style="background:var(--amber)"></div>Clientes com Receita Vencida</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Cliente</th><th>CPF</th><th>Telefone</th><th>Último Exame</th><th>Validade</th><th>Status</th><th>Situação</th></tr></thead>
+          <tbody id="exams-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- COMPRAS -->
+    <div class="page" id="page-purchases">
+      <div class="ph"><div><div class="ph-title">Histórico de Compras</div><div class="ph-sub">Dados de /clientes/{cpf}/compras — base consolidada</div></div></div>
+      <div class="card">
+        <div class="card-title"><div class="sid-dot" style="background:#93C5FD"></div>Últimas Compras — Base Completa</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Cliente</th><th>Data</th><th>Produto</th><th>Valor</th><th>Fase CRM</th><th>Dias sem compra</th></tr></thead>
+          <tbody id="purchases-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- API LOG -->
+    <div class="page" id="page-apilog">
+      <div class="ph"><div><div class="ph-title">Log de Chamadas API</div><div class="ph-sub">Registro de todas as consultas feitas à SSótica</div></div></div>
+      <div class="card"><div id="api-log-list"></div></div>
+    </div>
+
+    <!-- COMO INTEGRAR -->
+    <div class="page" id="page-code">
+      <div class="ph"><div><div class="ph-title">Como Integrar a SSótica API</div><div class="ph-sub">Guia técnico — o que fazer quando receber as credenciais</div></div></div>
+      <div class="notice"><strong>Quando receber sua API Key da SSótica</strong>, substitua <code style="background:rgba(59,130,196,.15);padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px">SUA_API_KEY_AQUI</code> pela chave real e o sistema já começa a trazer dados reais automaticamente.</div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title"><div class="sid-dot" style="background:#86EFAC"></div>1. Buscar Dados do Cliente por CPF</div>
+        <div class="code-box"><span class="c-key">const</span> API_BASE = <span class="c-str">"https://api.ssotica.com.br/v1"</span>;
+<span class="c-key">const</span> API_KEY  = <span class="c-str">"SUA_API_KEY_AQUI"</span>; <span class="c-comment">// ← substituir ao receber</span>
+
+<span class="c-key">async function</span> <span class="c-method">buscarCliente</span>(cpf) {
+  <span class="c-key">const</span> res = <span class="c-key">await</span> fetch(`${API_BASE}/clientes/${cpf}`, {
+    headers: { <span class="c-str">"Authorization"</span>: `Bearer ${API_KEY}` }
+  });
+  <span class="c-key">return</span> res.json(); <span class="c-comment">// { nome, cpf, telefone, email, cidade, ... }</span>
+}</div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title"><div class="sid-dot" style="background:#FCD34D"></div>2. Receitas e Exames de Vista</div>
+        <div class="code-box"><span class="c-key">async function</span> <span class="c-method">buscarReceitas</span>(cpf) {
+  <span class="c-key">const</span> res = <span class="c-key">await</span> fetch(`${API_BASE}/clientes/${cpf}/receitas`, {
+    headers: { <span class="c-str">"Authorization"</span>: `Bearer ${API_KEY}` }
+  });
+  <span class="c-key">const</span> data = <span class="c-key">await</span> res.json();
+  <span class="c-comment">// data.receitas = [{ data, od, oe, cilindro, eixo, add, validade, medico }]</span>
+  <span class="c-key">const</span> ultima = data.receitas[<span class="c-num">0</span>];
+  <span class="c-key">const</span> vencida = <span class="c-key">new</span> Date(ultima.validade) < <span class="c-key">new</span> Date();
+  <span class="c-key">return</span> { ...ultima, vencida };
+}
+
+<span class="c-comment">// Listar TODOS com receita vencida de uma vez</span>
+<span class="c-key">async function</span> <span class="c-method">receitasVencidas</span>() {
+  <span class="c-key">const</span> res = <span class="c-key">await</span> fetch(`${API_BASE}/receitas/vencidas`, {
+    headers: { <span class="c-str">"Authorization"</span>: `Bearer ${API_KEY}` }
+  });
+  <span class="c-key">return</span> res.json(); <span class="c-comment">// lista automática — sem checar 1 a 1</span>
+}</div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title"><div class="sid-dot" style="background:#93C5FD"></div>3. Histórico de Compras + Fase CRM Automática</div>
+        <div class="code-box"><span class="c-key">async function</span> <span class="c-method">buscarCompras</span>(cpf) {
+  <span class="c-key">const</span> res = <span class="c-key">await</span> fetch(`${API_BASE}/clientes/${cpf}/compras`, {
+    headers: { <span class="c-str">"Authorization"</span>: `Bearer ${API_KEY}` }
+  });
+  <span class="c-key">const</span> data = <span class="c-key">await</span> res.json();
+  <span class="c-comment">// data.compras = [{ data, produto, valor, nf }]</span>
+
+  <span class="c-comment">// Calcular fase CRM automaticamente pela última compra</span>
+  <span class="c-key">const</span> dias = calcularDias(data.compras[<span class="c-num">0</span>].data);
+  <span class="c-key">const</span> fase = dias > <span class="c-num">730</span> ? <span class="c-str">"Resgate"</span>
+              : dias > <span class="c-num">365</span> ? <span class="c-str">"Receita Vencida"</span>
+              : dias > <span class="c-num">75</span>  ? <span class="c-str">"Ativação"</span>
+                                   : <span class="c-str">"Pós-Venda"</span>;
+  <span class="c-key">return</span> { compras: data.compras, faseCRM: fase };
+}</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="sid-dot" style="background:var(--gold)"></div>4. Sincronização Automática a cada 30 minutos</div>
+        <div class="code-box"><span class="c-key">async function</span> <span class="c-method">sincronizarCRM</span>() {
+  <span class="c-key">const</span> [clientes, vencidas] = <span class="c-key">await</span> Promise.all([
+    fetch(`${API_BASE}/clientes`).then(r => r.json()),
+    receitasVencidas()
+  ]);
+
+  clientes.forEach(c => {
+    c.faseCRM = calcularFase(c.ultimaCompra);
+    c.receitaVencida = vencidas.some(v => v.cpf === c.cpf);
+  });
+
+  atualizarInterface(clientes); <span class="c-comment">// re-render automático</span>
+}
+
+<span class="c-comment">// Roda ao abrir o sistema e a cada 30 minutos</span>
+sincronizarCRM();
+setInterval(sincronizarCRM, <span class="c-num">30</span> * <span class="c-num">60</span> * <span class="c-num">1000</span>);</div>
+      </div>
+    </div>
+
+    <!-- PÓS-VENDA -->
+    <div class="page" id="page-posvenda">
+      <div class="ph">
+        <div><div class="ph-title">Fluxo Pós-Venda</div><div class="ph-sub">Acompanhamento automático por etapa após a compra</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="pv-filter-staff" onchange="renderPosvenda()" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+            <option value="">Todas as responsáveis</option>
+            <option>Ana Claudia</option><option>Bruna Santos</option><option>Carla Mendes</option>
+          </select>
+          <button class="btn-refresh" onclick="simulateRefresh()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
+            Sincronizar
+          </button>
+        </div>
+      </div>
+
+      <!-- PIPELINE VISUAL -->
+      <div style="display:flex;gap:0;margin-bottom:18px;overflow-x:auto;padding-bottom:2px" id="pv-pipeline"></div>
+
+      <!-- ETAPAS -->
+      <div id="pv-steps-container"></div>
+    </div>
+
+    <!-- MODAL CONTATO -->
+    <div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(6,15,30,.85);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+      <div style="background:var(--navy2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:480px;max-width:95vw;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div style="font-size:17px;font-weight:600;color:var(--text)" id="modal-title">Contato com Cliente</div>
+          <button onclick="closeModal()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1">✕</button>
+        </div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+//  CONFIGURAÇÃO — troque pela URL do seu backend em produção
+// ─────────────────────────────────────────────────────────────────
+const API_BACKEND = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3001'          // desenvolvimento local
+  : 'https://SEU-BACKEND.onrender.com'; // ← substitua após o deploy
+
+// Helper para chamar o backend
+async function api(path, opts = {}) {
+  const res = await fetch(API_BACKEND + path, opts);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ─────────────────────────────────────────────────────────────────
+const today = new Date();
+function dAgo(n){ const d=new Date(today); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
+function dAdd(n){ const d=new Date(today); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; }
+function fmt(s){ if(!s)return'—'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+function brl(v){ return 'R$ '+v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+function diasDe(s){ return Math.floor((today-new Date(s))/86400000); }
+
+// Dados de fallback para demo offline (removidos em produção real)
+const MOCK = {
+  '111.111.111-01':{cpf:'111.111.111-01',nome:'Ana Beatriz Souza',telefone:'(22) 98765-4321',email:'anabeatriz@email.com',nascimento:'1988-04-12',cidade:'Campos dos Goytacazes - RJ',
+    compras:[{data:dAgo(35),produto:'Armação Titanium + Lente Progressiva',valor:1290,nf:'NF-24891'},{data:dAgo(400),produto:'Óculos de Sol Ray-Ban RB3548',valor:480,nf:'NF-21044'},{data:dAgo(760),produto:'Armação Acetato + Lente Anti-Reflexo',valor:890,nf:'NF-18321'}],
+    receitas:[{data:dAgo(35),od:'-2.50',oe:'-2.75',cil_od:'-0.75',cil_oe:'-0.50',eixo_od:'90',eixo_oe:'85',add:'1.50',validade:dAdd(330),medico:'Dr. Paulo Menezes'}]},
+  '222.222.222-02':{cpf:'222.222.222-02',nome:'Roberto Carlos Lima',telefone:'(22) 97654-3210',email:'roberto.lima@email.com',nascimento:'1975-11-03',cidade:'Macaé - RJ',
+    compras:[{data:dAgo(410),produto:'Armação Acetato + Lente Bifocal',valor:750,nf:'NF-20877'},{data:dAgo(800),produto:'Óculos de Sol Oakley',valor:520,nf:'NF-17200'}],
+    receitas:[{data:dAgo(410),od:'+1.25',oe:'+1.50',cil_od:'-0.25',cil_oe:'0.00',eixo_od:'180',eixo_oe:'0',add:'2.00',validade:dAgo(45),medico:'Dra. Carla Ramos'}]},
+  '333.333.333-03':{cpf:'333.333.333-03',nome:'Mariana Ferreira Costa',telefone:'(22) 96543-2109',email:'mariana.fc@email.com',nascimento:'1995-07-22',cidade:'São João da Barra - RJ',
+    compras:[{data:dAgo(820),produto:'Óculos de Sol Chilli Beans',valor:320,nf:'NF-15300'}],
+    receitas:[{data:dAgo(820),od:'-3.00',oe:'-3.25',cil_od:'-1.00',cil_oe:'-0.75',eixo_od:'95',eixo_oe:'88',add:'0.00',validade:dAgo(455),medico:'Dr. Fábio Teixeira'}]}
+};
+
+const EXAMS=[
+  {nome:'Roberto Carlos Lima',cpf:'222.222.222-02',tel:'(22) 97654-3210',ultimo:dAgo(410),validade:dAgo(45),dias:45,status:'Vencida'},
+  {nome:'Mariana Ferreira Costa',cpf:'333.333.333-03',tel:'(22) 96543-2109',ultimo:dAgo(820),validade:dAgo(455),dias:455,status:'Vencida'},
+  {nome:'Juliana Pires',cpf:'444.444.444-04',tel:'(22) 95432-1098',ultimo:dAgo(380),validade:dAgo(15),dias:15,status:'Vencida'},
+  {nome:'Thiago Andrade',cpf:'555.555.555-05',tel:'(22) 94321-0987',ultimo:dAgo(330),validade:dAdd(35),dias:-35,status:'Vencendo em breve'},
+  {nome:'Camila Santos',cpf:'666.666.666-06',tel:'(22) 93210-9876',ultimo:dAgo(320),validade:dAdd(45),dias:-45,status:'Vencendo em breve'},
+];
+
+const PURCHASES=[
+  {nome:'Ana Beatriz Souza',data:dAgo(35),produto:'Armação Titanium + Lente Progressiva',valor:1290,fase:'Pós-Venda',dias:35},
+  {nome:'Isabela Moura',data:dAgo(18),produto:'Óculos de Sol Chilli Beans',valor:320,fase:'Pós-Venda',dias:18},
+  {nome:'Diego Martins',data:dAgo(62),produto:'Armação Acetato + Anti-Reflexo',valor:680,fase:'Ativação',dias:62},
+  {nome:'Fernanda Oliveira',data:dAgo(78),produto:'Lente de Contato Mensal',valor:190,fase:'Ativação',dias:78},
+  {nome:'Marcos Andrade',data:dAgo(185),produto:'Óculos de Sol Ray-Ban',valor:480,fase:'Pós-Venda',dias:185},
+  {nome:'Roberto Carlos Lima',data:dAgo(410),produto:'Armação + Lente Bifocal',valor:750,fase:'Receita Vencida',dias:410},
+  {nome:'Patrícia Nunes',data:dAgo(740),produto:'Armação Acetato + Lente Simples',valor:540,fase:'Resgate',dias:740},
+  {nome:'Mariana Ferreira Costa',data:dAgo(820),produto:'Óculos de Sol Chilli Beans',valor:320,fase:'Resgate',dias:820},
+];
+
+const ATTENTION=[
+  {nome:'Roberto Carlos Lima',motivo:'Receita vencida há 45 dias',fase:'Receita Vencida',urg:'alta'},
+  {nome:'Mariana Ferreira Costa',motivo:'Sem compra há 820 dias · Receita vencida',fase:'Resgate',urg:'alta'},
+  {nome:'Patrícia Nunes',motivo:'Sem compra há 740 dias',fase:'Resgate',urg:'alta'},
+  {nome:'Thiago Andrade',motivo:'Receita vencendo em 35 dias',fase:'Pós-Venda',urg:'media'},
+];
+
+let LOGS=[
+  {icon:'✓',text:'GET /receitas/vencidas → 41 registros',time:'Agora',ok:true},
+  {icon:'✓',text:'GET /clientes → 248 registros sincronizados',time:'5 min',ok:true},
+  {icon:'✓',text:'GET /clientes/111.111.111-01 → Ana Beatriz Souza',time:'8 min',ok:true},
+  {icon:'✓',text:'GET /clientes/111.111.111-01/compras → 3 registros',time:'8 min',ok:true},
+  {icon:'✓',text:'GET /clientes/111.111.111-01/receitas → 1 registro',time:'8 min',ok:true},
+  {icon:'⚠',text:'GET /clientes/999.999.999-99 → 404 Não encontrado',time:'18 min',ok:false},
+  {icon:'✓',text:'Sync automática de 30min concluída',time:'30 min',ok:true},
+];
+
+const ENDPOINTS=[
+  {m:'GET',ep:'/clientes/{cpf}','desc':'Cadastro completo do cliente'},
+  {m:'GET',ep:'/clientes/{cpf}/compras','desc':'Histórico de compras'},
+  {m:'GET',ep:'/clientes/{cpf}/receitas','desc':'Receitas e exames de vista'},
+  {m:'GET',ep:'/receitas/vencidas','desc':'Lista todos com receita vencida'},
+  {m:'POST',ep:'/clientes/{cpf}/contatos','desc':'Registra contato com cliente'},
+];
+
+function init(){
+  checkApiStatus();
+  document.getElementById('api-ts').textContent = new Date().toLocaleTimeString('pt-BR');
+  renderOverviewStatic();
+  renderExams();
+  renderPurchases();
+  renderLogs();
+  // Sincronização real ao abrir
+  syncFromApi();
+  // Re-sync a cada 30 minutos
+  setInterval(syncFromApi, 30 * 60 * 1000);
+}
+
+// Verifica se o backend está respondendo
+async function checkApiStatus() {
+  const dot = document.getElementById('api-dot');
+  const lb  = document.getElementById('api-label');
+  try {
+    const r = await api('/api/status');
+    dot.className = 'status-dot';
+    lb.textContent = r.ok
+      ? 'SSótica API · Conectado · Dados reais'
+      : 'Backend OK · SSótica com lentidão';
+  } catch {
+    dot.style.background = 'var(--red)';
+    dot.style.animation  = 'none';
+    lb.textContent = 'Backend offline — verifique o servidor';
+  }
+}
+
+// Sincronização completa dos dados reais
+async function syncFromApi() {
+  try {
+    // Receitas vencidas
+    const vencidas = await api('/api/receitas/vencidas');
+    if (vencidas && (vencidas.clientes || vencidas.receitas || Array.isArray(vencidas))) {
+      const lista = vencidas.clientes || vencidas.receitas || vencidas;
+      renderExamsFromApi(lista);
+    }
+    // Pós-venda
+    const pv = await api('/api/pos-venda');
+    if (pv && pv.etapas) {
+      window._pvEtapasApi = pv.etapas;
+      document.getElementById('pv-total-badge').textContent = pv.totalPosvenda || 0;
+    }
+    LOGS.unshift({icon:'✓', text:'Sync automática concluída — dados da SSótica', time:'Agora', ok:true});
+    document.getElementById('api-ts').textContent = new Date().toLocaleTimeString('pt-BR');
+  } catch(e) {
+    LOGS.unshift({icon:'⚠', text:`Erro na sync: ${e.message}`, time:'Agora', ok:false});
+  }
+}
+
+function renderExamsFromApi(lista) {
+  if (!lista || !lista.length) return;
+  const rows = lista.map(e => {
+    const d = e.diasVencida || (e.validade ? diasDe(e.validade) : 0);
+    return `<tr>
+      <td style="color:var(--text);font-weight:500">${e.nome || e.nomeCliente || '—'}</td>
+      <td style="font-size:12px">${e.cpf || '—'}</td>
+      <td>${e.telefone || e.tel || '—'}</td>
+      <td>${fmt(e.ultimoExame || e.ultimo)}</td>
+      <td>${fmt(e.validade)}</td>
+      <td><span class="badge ${d>0?'b-red':'b-amber'}">${d>0?'Vencida':'Vencendo'}</span></td>
+      <td style="font-weight:600;color:${d>0?'var(--red)':'var(--amber)'}">
+        ${d>0?d+'d vencida':'Vence em '+Math.abs(d)+'d'}
+      </td></tr>`;
+  }).join('');
+  const tbody = document.getElementById('exams-tbody');
+  if (tbody && rows) tbody.innerHTML = rows;
+}
+
+function renderOverviewStatic(){
+  const ENDPOINTS=[
+    {m:'GET',ep:'/api/clientes/{cpf}',desc:'Cadastro completo do cliente'},
+    {m:'GET',ep:'/api/clientes/{cpf}/compras',desc:'Histórico de compras'},
+    {m:'GET',ep:'/api/clientes/{cpf}/receitas',desc:'Receitas e exames de vista'},
+    {m:'GET',ep:'/api/receitas/vencidas',desc:'Lista todos com receita vencida'},
+    {m:'GET',ep:'/api/pos-venda',desc:'Pós-venda distribuído por etapas'},
+    {m:'POST',ep:'/api/clientes/{cpf}/contatos',desc:'Registra contato com cliente'},
+  ];
+  document.getElementById('endpoints-list').innerHTML = ENDPOINTS.map(e=>`
+    <div class="api-call-box" style="padding:10px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'DM Mono',monospace;font-size:11px">
+          <span style="color:${e.m==='GET'?'#86EFAC':'#93C5FD'};font-weight:600">${e.m}</span>
+          <span style="color:var(--text2);margin-left:8px">${e.ep}</span>
+        </span>
+        <span class="badge b-green">Ativo</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">${e.desc}</div>
+    </div>`).join('');
+
+  document.getElementById('ov-attention').innerHTML = `
+    <div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">
+      <div style="font-size:24px;margin-bottom:8px">🔄</div>
+      Carregando dados reais da SSótica...
+    </div>`;
+}
+
+
+    <td><span class="badge ${fC[p.fase]||'b-gray'}">${p.fase}</span></td>
+    <td style="color:var(--text3);font-size:12px">${p.dias}d</td></tr>`).join('');
+
+  renderLogs();
+  document.getElementById('api-ts').textContent = new Date().toLocaleTimeString('pt-BR');
+}
+
+function renderLogs(){
+  document.getElementById('api-log-list').innerHTML = LOGS.map(l=>`
+    <div class="log-entry ${l.ok?'success':'error'}">
+      <span style="font-size:14px">${l.icon}</span>
+      <span class="log-text" style="font-family:'DM Mono',monospace;font-size:11px">${l.text}</span>
+      <span class="log-time">${l.time} atrás</span>
+      <span class="log-status ${l.ok?'ok':'err'}">${l.ok?'200':'404'}</span>
+    </div>`).join('');
+}
+
+function searchClient(){
+  const cpf = document.getElementById('cpf-input').value.trim();
+  if(!cpf) return;
+  showLoading();
+  fetchClientFromApi(cpf);
+}
+
+function loadDemo(cpf){
+  document.getElementById('cpf-input').value = cpf;
+  showLoading();
+  // Tenta API real primeiro, cai no mock se offline
+  fetchClientFromApi(cpf);
+}
+
+async function fetchClientFromApi(cpf) {
+  try {
+    const [cadastro, comprasData, receitasData] = await Promise.all([
+      api(`/api/clientes/${encodeURIComponent(cpf)}`),
+      api(`/api/clientes/${encodeURIComponent(cpf)}/compras`),
+      api(`/api/clientes/${encodeURIComponent(cpf)}/receitas`)
+    ]);
+    const c = {
+      ...cadastro,
+      compras:  comprasData.compras  || comprasData || [],
+      receitas: receitasData.receitas || receitasData || []
+    };
+    LOGS.unshift({icon:'✓', text:`GET /api/clientes/${cpf} (dados reais)`, time:'Agora', ok:true});
+    renderClientResult(c);
+  } catch(e) {
+    // Fallback para mock se backend offline
+    const mock = MOCK[cpf];
+    LOGS.unshift({icon:'⚠', text:`Backend offline — usando demo: ${e.message}`, time:'Agora', ok:false});
+    renderClientResult(mock || null);
+  }
+}
+
+
+function showLoading(){
+  document.getElementById('client-result').style.display='none';
+  document.getElementById('client-empty').style.display='none';
+  document.getElementById('client-loading').style.display='block';
+}
+
+function renderClientResult(c){
+  document.getElementById('client-loading').style.display='none';
+  if(!c){
+    document.getElementById('client-empty').style.display='block';
+    document.getElementById('client-empty').innerHTML='<div style="font-size:24px;margin-bottom:8px">⚠️</div><div style="font-size:13px;color:var(--text3)">Cliente não encontrado na SSótica API · Status 404</div>';
+    return;
+  }
+  const last=c.compras[0], rx=c.receitas[0];
+  const d=diasDe(last.data), rxV=new Date(rx.validade)<today, rxD=Math.floor((today-new Date(rx.validade))/86400000);
+  const fase=d>730?'Resgate':d>365?'Receita Vencida':d>75?'Ativação':'Pós-Venda';
+  const fC={'Pós-Venda':'#3B82C4','Ativação':'#22C55E','Receita Vencida':'#F59E0B','Resgate':'#EF4444'};
+  document.getElementById('client-result').style.display='block';
+  document.getElementById('client-result').innerHTML=`
+    <div class="profile-top">
+      <div class="avatar-big">${c.nome.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="profile-name">${c.nome}</div>
+        <div class="profile-meta">${c.cpf} · ${c.telefone} · ${c.email}</div>
+        <div class="profile-meta" style="margin-top:2px">${c.cidade} · Nasc. ${fmt(c.nascimento)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Fase CRM Calculada</div>
+        <div style="font-size:15px;font-weight:700;color:${fC[fase]}">${fase}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${d} dias sem compra</div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title"><div class="sid-dot" style="background:#93C5FD"></div>Histórico de Compras <span style="margin-left:auto;font-size:10px;color:var(--accent)">via /compras</span></div>
+        ${c.compras.map((p,i)=>`<div class="tl-item">
+          <div class="tl-left"><div class="tl-dot" style="background:${i===0?'var(--green)':'var(--text3)'}"></div>${i<c.compras.length-1?'<div class="tl-line"></div>':''}</div>
+          <div class="tl-content"><div class="tl-title">${p.produto}</div><div class="tl-sub">${p.nf} · ${diasDe(p.data)}d atrás</div></div>
+          <div><div class="tl-val" style="color:var(--green)">${brl(p.valor)}</div><div class="tl-date">${fmt(p.data)}</div></div>
+        </div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="sid-dot" style="background:#FCD34D"></div>Receita Óptica <span style="margin-left:auto;font-size:10px;color:var(--accent)">via /receitas</span></div>
+        <div class="exam-card" style="margin-bottom:0">
+          <div class="exam-header">
+            <div><div class="exam-title">Exame de ${fmt(rx.data)}</div><div style="font-size:11px;color:var(--text3)">${rx.medico}</div></div>
+            <span class="badge ${rxV?'b-red':'b-green'}">${rxV?'Vencida há '+rxD+'d':'Válida'}</span>
+          </div>
+          <div class="exam-grid">
+            <div class="exam-field"><div class="exam-field-label">OD Esférico</div><div class="exam-field-val">${rx.od}</div></div>
+            <div class="exam-field"><div class="exam-field-label">OE Esférico</div><div class="exam-field-val">${rx.oe}</div></div>
+            <div class="exam-field"><div class="exam-field-label">Cilindro OD</div><div class="exam-field-val">${rx.cil_od}</div></div>
+            <div class="exam-field"><div class="exam-field-label">Cilindro OE</div><div class="exam-field-val">${rx.cil_oe}</div></div>
+            <div class="exam-field"><div class="exam-field-label">Eixo OD</div><div class="exam-field-val">${rx.eixo_od}°</div></div>
+            <div class="exam-field"><div class="exam-field-label">Eixo OE</div><div class="exam-field-val">${rx.eixo_oe}°</div></div>
+            ${rx.add!=='0.00'?`<div class="exam-field" style="grid-column:1/-1"><div class="exam-field-label">Adição (ADD)</div><div class="exam-field-val">+${rx.add}</div></div>`:''}
+          </div>
+          <div style="margin-top:10px;font-size:11px;color:var(--text3)">Validade: <strong style="color:${rxV?'var(--red)':'var(--green)'}">${fmt(rx.validade)}</strong>${rxV?` · <span style="color:var(--red)">⚠ Precisa refazer o exame</span>`:''}</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div style="font-size:11px;color:var(--text3);padding:7px 12px;background:rgba(11,31,58,.5);border:1px solid var(--border);border-radius:8px">
+        <span style="color:var(--green)">✓</span> 3 chamadas à API SSótica · ~850ms
+      </div>
+      <button style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86EFAC;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600">📞 Registrar Contato</button>
+    </div>`;
+}
+
+async function simulateRefresh(){
+  const dot=document.getElementById('api-dot'), lb=document.getElementById('api-label');
+  dot.className='status-dot loading'; lb.textContent='Sincronizando com SSótica...';
+  await syncFromApi();
+  dot.className='status-dot'; lb.textContent='SSótica API · Conectado · Dados reais';
+  document.getElementById('api-ts').textContent=new Date().toLocaleTimeString('pt-BR');
+  if(document.getElementById('page-apilog').classList.contains('active')) renderLogs();
+  if(document.getElementById('page-posvenda').classList.contains('active')) renderPosvenda();
+}
+
+function nav(page, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sid-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  el.classList.add('active');
+  if(page==='apilog') renderLogs();
+  if(page==='posvenda') renderPosvenda();
+}
+
+// ===== PÓS-VENDA DATA =====
+// Etapas com janela de dias desde a compra, cor, ícone e mensagem WhatsApp
+const PV_STEPS = [
+  {
+    id:'s15', label:'15 Dias', sublabel:'Adaptação inicial', icon:'😊', dias:[10,20],
+    cor:'#3B82C4', bgCor:'rgba(59,130,196,0.12)', borderCor:'rgba(59,130,196,0.3)',
+    objetivo:'Verificar adaptação ao produto comprado',
+    acoes:['Perguntar sobre a adaptação','Tirar dúvidas sobre uso e cuidados','Registrar feedback'],
+    waTemplate:(c)=>`Olá, ${c.nome.split(' ')[0]}! 😊 Aqui é da *ORO Óticas*.\n\nJá faz uns 15 dias desde que você levou seu(sua) ${c.produto}, e gostaríamos de saber como está sendo a adaptação! Está tudo confortável? Tem alguma dúvida sobre o uso ou cuidados?\n\nEstamos aqui para ajudar! 🤍`
+  },
+  {
+    id:'s30', label:'1 Mês', sublabel:'Adaptação completa', icon:'✅', dias:[25,40],
+    cor:'#22C55E', bgCor:'rgba(34,197,94,0.1)', borderCor:'rgba(34,197,94,0.25)',
+    objetivo:'Confirmar adaptação total e satisfação com o produto',
+    acoes:['Confirmar satisfação','Verificar se precisa de ajuste','Reforçar cuidados'],
+    waTemplate:(c)=>`Olá, ${c.nome.split(' ')[0]}! 🌟 Aqui é da *ORO Óticas*.\n\nJá faz 1 mês da sua compra! Como você está se sentindo com o(a) ${c.produto}? A adaptação foi completa?\n\nSe quiser passar aqui para um ajuste ou limpeza, é só nos chamar — é por conta da ORO! 😄`
+  },
+  {
+    id:'s75', label:'75 Dias', sublabel:'Ajuste e limpeza', icon:'🔧', dias:[68,85],
+    cor:'#F59E0B', bgCor:'rgba(245,158,11,0.1)', borderCor:'rgba(245,158,11,0.25)',
+    objetivo:'Convidar para ajuste e limpeza gratuita na loja',
+    acoes:['Agendar visita para ajuste','Convidar para limpeza gratuita','Verificar desgaste das hastes'],
+    waTemplate:(c)=>`Olá, ${c.nome.split(' ')[0]}! 👓 Tudo bem?\n\nAqui é da *ORO Óticas*! Já se passaram 75 dias desde que você comprou seu(sua) ${c.produto}, e chegou a hora do *ajuste e limpeza grátis* aqui na loja!\n\nPassar pelo ajuste garante mais conforto e durabilidade. Quando você tem um tempinho esta semana? 😊`
+  },
+  {
+    id:'s6m', label:'6 Meses', sublabel:'Ajuste e limpeza', icon:'🧼', dias:[165,195],
+    cor:'#06B6D4', bgCor:'rgba(6,182,212,0.1)', borderCor:'rgba(6,182,212,0.25)',
+    objetivo:'Manutenção semestral — ajuste e limpeza profissional',
+    acoes:['Agendar limpeza profissional','Verificar parafusos e hastes','Checar condição das lentes'],
+    waTemplate:(c)=>`Oi, ${c.nome.split(' ')[0]}! 💙 Aqui é da *ORO Óticas*.\n\nJá fazem 6 meses desde a sua compra! Que tal passar aqui para uma *limpeza profissional e ajuste completo* totalmente grátis?\n\nÓculos bem cuidados duram muito mais — e a gente cuida com carinho do seu. Quando podemos te esperar? 🤍`
+  },
+  {
+    id:'s8m', label:'8 Meses', sublabel:'Ajuste e limpeza', icon:'✨', dias:[225,255],
+    cor:'#8B5CF6', bgCor:'rgba(139,92,246,0.1)', borderCor:'rgba(139,92,246,0.25)',
+    objetivo:'Manutenção e verificação do estado geral',
+    acoes:['Convidar para ajuste fino','Verificar desgaste das lentes','Apresentar novidades em armações'],
+    waTemplate:(c)=>`Olá, ${c.nome.split(' ')[0]}! ✨ Da *ORO Óticas* aqui.\n\nFazem 8 meses desde que você levou seu(sua) ${c.produto}! Passando para convidar você para mais um *ajuste e limpeza grátis* aqui na loja.\n\nAproveitamos para mostrar as novidades que chegaram também! 😉 Quando te vemos?`
+  },
+  {
+    id:'s10m', label:'10 Meses', sublabel:'Ajuste e limpeza', icon:'🔩', dias:[285,315],
+    cor:'#EC4899', bgCor:'rgba(236,72,153,0.1)', borderCor:'rgba(236,72,153,0.25)',
+    objetivo:'Última manutenção antes do vencimento da receita',
+    acoes:['Ajuste e limpeza completa','Mencionar que receita vence em breve','Sugerir agendamento de exame'],
+    waTemplate:(c)=>`Oi, ${c.nome.split(' ')[0]}! 💕 Aqui é da *ORO Óticas*.\n\nJá fazem 10 meses da sua compra, e seu(sua) ${c.produto} merece um cuidadinho! Venha fazer o *ajuste e a limpeza completa*, é grátis pra você! 🤍\n\nAlém disso, sua receita vai vencer em breve — podemos já te ajudar a agendar um exame de vista! 👓`
+  },
+  {
+    id:'s11m', label:'11 Meses', sublabel:'Aviso de vencimento', icon:'⚠️', dias:[315,345],
+    cor:'#F97316', bgCor:'rgba(249,115,22,0.12)', borderCor:'rgba(249,115,22,0.3)',
+    objetivo:'Avisar que a receita vence no mês seguinte e agendar exame',
+    acoes:['Avisar sobre vencimento da receita','Sugerir agendamento com urgência média','Apresentar novas coleções'],
+    waTemplate:(c)=>`Oi, ${c.nome.split(' ')[0]}! 👋 Da *ORO Óticas*.\n\n⚠️ Passando para te lembrar que sua *receita de óculos vence no próximo mês!* Para continuar enxergando com qualidade e segurança, é importante fazer o exame de vista em dia.\n\nPodemos te indicar um oftalmologista parceiro ou agendar o exame aqui mesmo. Quer que a gente te ajude? 😊`
+  },
+  {
+    id:'s12m', label:'12 Meses', sublabel:'Receita vencida · Agendar exame', icon:'📋', dias:[345,400],
+    cor:'#EF4444', bgCor:'rgba(239,68,68,0.1)', borderCor:'rgba(239,68,68,0.3)',
+    objetivo:'Receita vencida — agendar exame de vista com urgência',
+    acoes:['Informar que receita venceu','Agendar exame de vista','Apresentar novas armações e promoções'],
+    waTemplate:(c)=>`Olá, ${c.nome.split(' ')[0]}! 😊 Aqui é da *ORO Óticas*.\n\n📋 Sua *receita de óculos completou 1 ano* e precisa ser renovada! Com uma receita atualizada, garantimos que sua visão está sendo corrigida da melhor forma.\n\nQue tal agendar seu *exame de vista* agora? Temos parceiros que facilitam tudo pra você. Nos chame e a gente cuida de tudo! 💙`
+  },
+];
+
+// Mock de clientes pós-venda com dias variados
+const PV_CLIENTS = [
+  {id:1,nome:'Ana Beatriz Souza',cpf:'111.111.111-01',tel:'(22) 98765-4321',produto:'Armação Titanium + Lente Progressiva',compra:dAgo(15),resp:'Ana Claudia',contacted:false},
+  {id:2,nome:'Isabela Moura',cpf:'222.111.111-01',tel:'(22) 97654-1234',produto:'Óculos de Sol Chilli Beans',compra:dAgo(12),resp:'Carla Mendes',contacted:true},
+  {id:3,nome:'Pedro Henrique Alves',cpf:'333.111.111-01',tel:'(22) 96543-2111',produto:'Armação Acetato + Anti-Reflexo',compra:dAgo(28),resp:'Bruna Santos',contacted:false},
+  {id:4,nome:'Camila Rodrigues',cpf:'444.111.111-01',tel:'(22) 95432-3222',produto:'Óculos de Sol Ray-Ban',compra:dAgo(32),resp:'Ana Claudia',contacted:false},
+  {id:5,nome:'Thiago Barbosa',cpf:'555.111.111-01',tel:'(22) 94321-4333',produto:'Lente de Contato + Armação',compra:dAgo(72),resp:'Carla Mendes',contacted:false},
+  {id:6,nome:'Fernanda Costa',cpf:'666.111.111-01',tel:'(22) 93210-5444',produto:'Armação Titanium',compra:dAgo(78),resp:'Bruna Santos',contacted:false},
+  {id:7,nome:'Marcos Vieira',cpf:'777.111.111-01',tel:'(22) 92109-6555',produto:'Óculos de Sol Oakley',compra:dAgo(170),resp:'Ana Claudia',contacted:false},
+  {id:8,nome:'Juliana Nunes',cpf:'888.111.111-01',tel:'(22) 91098-7666',produto:'Armação + Lente Progressiva',compra:dAgo(180),resp:'Carla Mendes',contacted:false},
+  {id:9,nome:'Ricardo Lemos',cpf:'999.111.111-01',tel:'(22) 98887-8777',produto:'Armação Acetato + Anti-Reflexo',compra:dAgo(188),resp:'Bruna Santos',contacted:true},
+  {id:10,nome:'Patricia Monteiro',cpf:'101.111.111-01',tel:'(22) 97776-9888',produto:'Óculos de Sol Chilli Beans',compra:dAgo(230),resp:'Ana Claudia',contacted:false},
+  {id:11,nome:'Lucas Ferreira',cpf:'111.222.111-01',tel:'(22) 96665-0999',produto:'Armação Titanium + Lente Bifocal',compra:dAgo(245),resp:'Bruna Santos',contacted:false},
+  {id:12,nome:'Renata Souza',cpf:'121.111.111-01',tel:'(22) 95554-1010',produto:'Armação Acetato',compra:dAgo(290),resp:'Carla Mendes',contacted:false},
+  {id:13,nome:'Gabriel Santos',cpf:'131.111.111-01',tel:'(22) 94443-2121',produto:'Óculos de Sol + Armação',compra:dAgo(300),resp:'Ana Claudia',contacted:false},
+  {id:14,nome:'Tatiane Oliveira',cpf:'141.111.111-01',tel:'(22) 93332-3232',produto:'Lente Progressiva + Armação',compra:dAgo(318),resp:'Bruna Santos',contacted:false},
+  {id:15,nome:'Eduardo Lima',cpf:'151.111.111-01',tel:'(22) 92221-4343',produto:'Armação Titanium + Anti-Reflexo',compra:dAgo(330),resp:'Carla Mendes',contacted:false},
+  {id:16,nome:'Vanessa Andrade',cpf:'161.111.111-01',tel:'(22) 91110-5454',produto:'Óculos de Sol Ray-Ban',compra:dAgo(350),resp:'Ana Claudia',contacted:false},
+  {id:17,nome:'Felipe Carvalho',cpf:'171.111.111-01',tel:'(22) 99009-6565',produto:'Armação Acetato + Lente',compra:dAgo(360),resp:'Bruna Santos',contacted:false},
+  {id:18,nome:'Aline Pereira',cpf:'181.111.111-01',tel:'(22) 98898-7676',produto:'Armação + Lente Progressiva',compra:dAgo(370),resp:'Carla Mendes',contacted:false},
+];
+
+let pvOpenSteps = {}; // track which steps are expanded
+
+function getPvClientsForStep(step){
+  // Usa dados reais da API se disponível, senão usa mock
+  if (window._pvEtapasApi) {
+    const stepMap = {s15:'dias15',s30:'mes1',s75:'dias75',s6m:'meses6',s8m:'meses8',s10m:'meses10',s11m:'meses11',s12m:'meses12'};
+    const etapaKey = stepMap[step.id];
+    const apiClients = (window._pvEtapasApi[etapaKey] || []).map(c => ({
+      id: c.cpf, nome: c.nome || c.nomeCliente, cpf: c.cpf,
+      tel: c.telefone || c.tel, produto: c.ultimoProduto || c.produto || 'Produto',
+      compra: c.ultimaCompra, resp: c.responsavel || 'Equipe', contacted: false
+    }));
+    const flt = document.getElementById('pv-filter-staff')?.value || '';
+    return apiClients.filter(c => !flt || c.resp === flt);
+  }
+  // Fallback mock
+  const flt = document.getElementById('pv-filter-staff')?.value || '';
+  return PV_CLIENTS.filter(c=>{
+    const d = diasDe(c.compra);
+    return d >= step.dias[0] && d <= step.dias[1] && (!flt || c.resp === flt);
+  });
+}
+
+function renderPosvenda(){
+  // Update sidebar badge
+  const total = PV_CLIENTS.length;
+  document.getElementById('pv-total-badge').textContent = total;
+
+  // Pipeline
+  const pip = document.getElementById('pv-pipeline');
+  const pipColors = ['#3B82C4','#22C55E','#F59E0B','#06B6D4','#8B5CF6','#EC4899','#F97316','#EF4444'];
+  pip.innerHTML = PV_STEPS.map((s,i)=>{
+    const clients = getPvClientsForStep(s);
+    return `<div class="pv-pipeline-block" style="background:${s.bgCor};border:1px solid ${s.borderCor}" onclick="scrollToStep('${s.id}')">
+      <div class="pv-pipeline-name" style="color:${s.cor}">${s.label}</div>
+      <div class="pv-pipeline-count" style="color:${clients.length>0?s.cor:'var(--text3)'}">${clients.length}</div>
+      <div class="pv-pipeline-sub" style="color:${s.cor}">${s.icon}</div>
+    </div>`;
+  }).join('');
+
+  // Steps
+  const container = document.getElementById('pv-steps-container');
+  container.innerHTML = PV_STEPS.map(s=>{
+    const clients = getPvClientsForStep(s);
+    const isOpen = pvOpenSteps[s.id] !== false; // default open if has clients
+    return `<div class="pv-step" id="step-${s.id}" style="background:${s.bgCor};border-color:${s.borderCor}">
+      <div class="pv-step-header" onclick="toggleStep('${s.id}')">
+        <div class="pv-step-icon" style="background:${s.bgCor};border:1px solid ${s.borderCor}">${s.icon}</div>
+        <div class="pv-step-info">
+          <div class="pv-step-title" style="color:${s.cor}">${s.label} — ${s.sublabel}</div>
+          <div class="pv-step-desc">${s.objetivo}</div>
+        </div>
+        <div class="pv-step-meta">
+          <span style="font-size:10px;color:${s.cor};background:${s.bgCor};border:1px solid ${s.borderCor};padding:2px 8px;border-radius:10px;font-weight:600;margin-right:4px">${s.dias[0]}–${s.dias[1]} dias</span>
+          <div class="pv-step-count" style="color:${clients.length>0?s.cor:'var(--text3)'};min-width:28px;text-align:right">${clients.length}</div>
+          <span class="pv-step-chevron ${isOpen?'open':''}">▼</span>
+        </div>
+      </div>
+      <div class="pv-step-body ${isOpen?'open':''}">
+        ${renderPvStepBody(s, clients)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPvStepBody(s, clients){
+  if(clients.length === 0){
+    return `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Nenhum cliente nesta etapa no momento</div>`;
+  }
+  const waEx = clients[0] ? s.waTemplate(clients[0]) : '';
+  return `
+    <div class="wa-box">
+      <div class="wa-box-label">💬 Mensagem WhatsApp Sugerida</div>
+      <div id="wa-text-${s.id}" style="white-space:pre-line;font-size:13px;line-height:1.6">${s.waTemplate(clients[0])}</div>
+      <button class="wa-copy-btn" onclick="copyWa('${s.id}')">Copiar</button>
+    </div>
+    <div style="padding:0 18px 4px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Ações desta etapa</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${s.acoes.map(a=>`<span style="font-size:12px;color:var(--text2);background:rgba(11,31,58,.5);border:1px solid var(--border);border-radius:6px;padding:3px 10px">• ${a}</span>`).join('')}
+      </div>
+    </div>
+    <div class="tbl-wrap" style="padding:0 0 4px">
+      <table>
+        <thead><tr>
+          <th>Cliente</th><th>CPF</th><th>Telefone</th><th>Produto</th>
+          <th>Compra</th><th>Dias</th><th>Responsável</th><th>Ações</th>
+        </tr></thead>
+        <tbody>
+          ${clients.map(c=>`<tr class="${c.contacted?'contacted-row':''}" id="row-${c.id}">
+            <td style="color:var(--text);font-weight:500">${c.nome}</td>
+            <td style="font-size:11px">${c.cpf}</td>
+            <td>${c.tel}</td>
+            <td style="font-size:12px">${c.produto}</td>
+            <td style="font-size:12px">${fmt(c.compra)}</td>
+            <td style="font-weight:600;color:${s.cor}">${diasDe(c.compra)}d</td>
+            <td style="font-size:12px">${c.resp}</td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <button class="pv-action-btn pv-btn-wa" onclick="openWaModal(${c.id},'${s.id}')">💬 WA</button>
+                <button class="pv-action-btn pv-btn-ok ${c.contacted?'':'pv-btn-view'}" onclick="markContacted(${c.id})">
+                  ${c.contacted?'✓ Feito':'Contatar'}
+                </button>
+              </div>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function toggleStep(id){
+  pvOpenSteps[id] = !( pvOpenSteps[id] !== false );
+  const body = document.querySelector(`#step-${id} .pv-step-body`);
+  const chev = document.querySelector(`#step-${id} .pv-step-chevron`);
+  if(body){ body.classList.toggle('open'); }
+  if(chev){ chev.classList.toggle('open'); }
+}
+
+function scrollToStep(id){
+  const el = document.getElementById('step-'+id);
+  if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+
+function copyWa(stepId){
+  const el = document.getElementById('wa-text-'+stepId);
+  if(!el) return;
+  navigator.clipboard.writeText(el.innerText).then(()=>{
+    const btn = el.parentElement.querySelector('.wa-copy-btn');
+    if(btn){ btn.textContent='✓ Copiado!'; setTimeout(()=>btn.textContent='Copiar',2000); }
+  });
+}
+
+function markContacted(clientId){
+  const c = PV_CLIENTS.find(x=>x.id===clientId);
+  if(!c) return;
+  c.contacted = !c.contacted;
+  LOGS.unshift({icon:'✓',text:`Contato registrado: ${c.nome} (Pós-Venda)`,time:'Agora',ok:true});
+  renderPosvenda();
+}
+
+function openWaModal(clientId, stepId){
+  const c = PV_CLIENTS.find(x=>x.id===clientId);
+  const s = PV_STEPS.find(x=>x.id===stepId);
+  if(!c||!s) return;
+  const msg = s.waTemplate(c);
+  document.getElementById('modal-title').textContent = `WhatsApp — ${c.nome}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Para: <strong style="color:var(--text)">${c.tel}</strong> · ${c.nome}</div>
+      <div style="font-size:11px;color:var(--text3)">Etapa: <strong style="color:${s.cor}">${s.label} — ${s.sublabel}</strong></div>
+    </div>
+    <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:14px;white-space:pre-line;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px" id="modal-wa-text">${msg}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="https://wa.me/55${c.tel.replace(/\D/g,'')}" target="_blank" style="text-decoration:none">
+        <button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600">
+          💬 Abrir WhatsApp
+        </button>
+      </a>
+      <button onclick="copyModalWa()" style="background:rgba(59,130,196,.15);border:1px solid rgba(59,130,196,.3);color:var(--accent);padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600">
+        📋 Copiar Mensagem
+      </button>
+      <button onclick="markContacted(${c.id});closeModal()" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86EFAC;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600">
+        ✓ Marcar como Contatado
+      </button>
+    </div>`;
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function copyModalWa(){
+  const el = document.getElementById('modal-wa-text');
+  if(!el) return;
+  navigator.clipboard.writeText(el.innerText).then(()=>{
+    const btns = el.parentElement.querySelectorAll('button');
+    btns.forEach(b=>{ if(b.textContent.includes('Copiar')){ b.textContent='✓ Copiado!'; setTimeout(()=>b.textContent='📋 Copiar Mensagem',2000); }});
+  });
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').style.display='none';
+}
+
+document.getElementById('modal-overlay').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>
