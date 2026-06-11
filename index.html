@@ -1,813 +1,238 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ORO Óticas — CRM</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-  :root{
-    --navy:#0B1F3A;--navy2:#122848;--blue:#1E4D8C;--blue2:#2563AA;--accent:#3B82C4;
-    --gold:#C9A84C;--gold2:#E8C876;
-    --text:#F0F4FA;--text2:#A8BDD4;--text3:#6B8BAD;
-    --border:rgba(59,130,196,0.18);--border2:rgba(59,130,196,0.35);
-    --green:#22C55E;--amber:#F59E0B;--red:#EF4444;--purple:#A855F7;
-    --card:rgba(18,40,72,0.7);
+const express = require('express');
+const cors    = require('cors');
+const fetch   = require('node-fetch');
+require('dotenv').config();
+
+const app  = express();
+const PORT = process.env.PORT || 3001;
+
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5500,http://127.0.0.1:5500').split(',');
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true);
+    else cb(new Error('Origem não permitida'));
   }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+}));
+app.use(express.json());
 
-  /* TOPBAR */
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--navy2);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .brand{font-size:18px;font-weight:700;letter-spacing:3px;color:var(--text);}
-  .brand span{color:var(--gold);}
-  .api-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);}
-  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse 2s infinite;}
-  .status-dot.ok{background:var(--green);}
-  .status-dot.err{background:var(--red);animation:none;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+// ── Config SSótica (URLs reais conforme documentação oficial) ──────────────
+const SS_BASE = 'https://app.ssotica.com.br/api/v1';
+const SS_KEY  = process.env.SSOTICA_API_KEY;
+const SS_CNPJ = process.env.SSOTICA_CNPJ; // CNPJ da loja sem pontuação
 
-  /* LAYOUT */
-  .body{display:flex;flex:1;overflow:hidden;}
-  .sidebar{width:210px;background:var(--navy2);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;overflow-y:auto;}
-  .main{flex:1;overflow-y:auto;padding:20px;}
-
-  /* SIDEBAR */
-  .sid-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:0 16px;margin-bottom:4px;margin-top:14px;}
-  .sid-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px;transition:all .15s;border:1px solid transparent;margin:0 6px 2px;}
-  .sid-item:hover{background:rgba(59,130,196,.1);color:var(--text2);}
-  .sid-item.active{background:rgba(37,99,170,.25);color:var(--text);border-color:rgba(59,130,196,.25);}
-  .sid-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-  .sid-badge{margin-left:auto;background:rgba(59,130,196,.2);color:var(--accent);font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;}
-  .sid-badge.warn{background:rgba(245,158,11,.2);color:#FCD34D;}
-
-  /* CARDS / STATS */
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
-  .card-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
-  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-  .stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;}
-  .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
-  .stat.blue::before{background:linear-gradient(90deg,var(--blue),var(--accent));}
-  .stat.green::before{background:linear-gradient(90deg,#16A34A,var(--green));}
-  .stat.amber::before{background:linear-gradient(90deg,#B45309,var(--amber));}
-  .stat.purple::before{background:linear-gradient(90deg,#7C3AED,var(--purple));}
-  .stat.red::before{background:linear-gradient(90deg,#B91C1C,var(--red));}
-  .stat-label{font-size:10px;color:var(--text3);margin-bottom:6px;}
-  .stat-val{font-size:26px;font-weight:700;line-height:1;}
-  .stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
-  .stat-sub.ok{color:var(--green);}
-
-  /* PAGE */
-  .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;}
-  .ph-title{font-size:20px;font-weight:600;}
-  .ph-sub{font-size:12px;color:var(--text3);margin-top:3px;}
-  .page{display:none;}
-  .page.active{display:block;}
-
-  /* BUTTONS */
-  .btn-refresh{display:flex;align-items:center;gap:6px;background:rgba(37,99,170,.2);border:1px solid rgba(59,130,196,.35);color:var(--accent);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .2s;}
-  .btn-refresh:hover{background:rgba(37,99,170,.35);}
-  .btn-sm{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;font-family:'DM Sans',sans-serif;transition:all .15s;}
-  .btn-blue{background:rgba(37,99,170,.2);border-color:rgba(37,99,170,.4);color:#93C5FD;}
-  .btn-blue:hover{background:rgba(37,99,170,.35);}
-  .btn-outline{background:transparent;border-color:var(--border2);color:var(--text3);}
-  .btn-outline:hover{background:rgba(59,130,196,.1);color:var(--text2);}
-  .btn-green{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#86EFAC;}
-
-  /* TABLE */
-  .tbl-wrap{overflow-x:auto;}
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  th{text-align:left;padding:9px 12px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500;}
-  td{padding:10px 12px;border-bottom:1px solid rgba(59,130,196,.07);color:var(--text2);}
-  tr:hover td{background:rgba(59,130,196,.04);}
-
-  /* BADGE */
-  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
-  .b-blue{background:rgba(37,99,170,.2);color:#93C5FD;border:1px solid rgba(37,99,170,.3);}
-  .b-green{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.25);}
-  .b-amber{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.25);}
-  .b-red{background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.25);}
-  .b-gray{background:rgba(107,139,173,.15);color:var(--text3);border:1px solid rgba(107,139,173,.2);}
-
-  /* SEARCH */
-  .search-row{display:flex;gap:8px;margin-bottom:14px;}
-  .search-row input,.search-row select{background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
-  .search-row input{flex:1;}
-  .search-row select option{background:var(--navy2);}
-  .search-row input:focus,.search-row select:focus{border-color:var(--accent);}
-  .btn-search{background:var(--blue);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;}
-
-  /* CODE */
-  .code-box{background:rgba(6,15,30,.8);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;overflow-x:auto;}
-  .c-key{color:#93C5FD;}.c-str{color:#86EFAC;}.c-num{color:#FCD34D;}.c-comment{color:var(--text3);}.c-method{color:#D8B4FE;}
-
-  /* ACTIVITY */
-  .act-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(59,130,196,.07);align-items:flex-start;}
-  .act-item:last-child{border-bottom:none;}
-  .act-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
-  .act-text{font-size:13px;color:var(--text2);flex:1;line-height:1.4;}
-  .act-meta{font-size:11px;color:var(--text3);margin-top:2px;}
-
-  /* PIPELINE PÓS-VENDA */
-  .pv-pipeline{display:flex;gap:0;margin-bottom:16px;overflow-x:auto;}
-  .pv-block{flex:0 0 auto;min-width:90px;padding:10px 8px;text-align:center;cursor:pointer;position:relative;}
-  .pv-block:first-child{border-radius:10px 0 0 10px;}
-  .pv-block:last-child{border-radius:0 10px 10px 0;}
-  .pv-block::after{content:'›';position:absolute;right:-5px;top:50%;transform:translateY(-50%);font-size:13px;color:rgba(255,255,255,.2);z-index:1;}
-  .pv-block:last-child::after{display:none;}
-  .pv-block:hover{filter:brightness(1.15);}
-  .pv-bname{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
-  .pv-bcount{font-size:18px;font-weight:700;margin-top:3px;}
-  .pv-bsub{font-size:9px;opacity:.7;margin-top:1px;}
-
-  .pv-step{margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
-  .pv-step-hdr{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;transition:background .15s;user-select:none;}
-  .pv-step-hdr:hover{background:rgba(59,130,196,.06);}
-  .pv-step-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-  .pv-step-info{flex:1;}
-  .pv-step-title{font-size:14px;font-weight:600;}
-  .pv-step-desc{font-size:11px;color:var(--text3);margin-top:2px;}
-  .pv-step-count{font-size:18px;font-weight:700;min-width:24px;text-align:right;}
-  .pv-chev{color:var(--text3);font-size:11px;transition:transform .2s;margin-left:4px;}
-  .pv-chev.open{transform:rotate(180deg);}
-  .pv-body{display:none;border-top:1px solid var(--border);}
-  .pv-body.open{display:block;}
-  .wa-box{background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:12px 14px;margin:12px 16px;font-size:13px;color:var(--text2);line-height:1.6;position:relative;}
-  .wa-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(37,211,102,.7);font-weight:600;margin-bottom:6px;}
-  .wa-copy{position:absolute;top:10px;right:10px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:rgba(37,211,102,.9);padding:3px 9px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;}
-  .contacted td:first-child::after{content:' ✓';font-size:10px;color:var(--green);margin-left:4px;}
-  .contacted{opacity:.5;}
-
-  /* API LOG */
-  .log-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;font-size:12px;margin-bottom:3px;}
-  .log-row.ok{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.14);}
-  .log-row.err{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.14);}
-  .log-txt{flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);}
-  .log-t{font-size:10px;color:var(--text3);}
-  .log-st{font-size:10px;font-weight:600;padding:2px 6px;border-radius:8px;}
-  .log-st.ok{background:rgba(34,197,94,.2);color:#86EFAC;}
-  .log-st.err{background:rgba(239,68,68,.2);color:#FCA5A5;}
-
-  /* NOTICE */
-  .notice{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.25);border-left:3px solid var(--gold);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;}
-  .notice strong{color:var(--gold2);}
-
-  /* MODAL */
-  .modal-ov{display:none;position:fixed;inset:0;background:rgba(6,15,30,.85);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-  .modal-ov.open{display:flex;}
-  .modal{background:var(--navy2);border:1px solid var(--border2);border-radius:16px;padding:26px;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;}
-  .modal-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
-  .modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;}
-
-  /* LOADING SPINNER */
-  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:auto;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .loading-center{display:flex;justify-content:center;padding:40px;}
-
-  ::-webkit-scrollbar{width:4px;height:4px;}
-  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-</style>
-</head>
-<body>
-
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="brand"><span>ORO</span> Óticas · CRM</div>
-  <div class="api-status">
-    <div class="status-dot" id="api-dot"></div>
-    <span id="api-label">Conectando à SSótica...</span>
-    <span style="color:var(--border2)">|</span>
-    <span style="font-size:11px;color:var(--text3)" id="api-ts"></span>
-  </div>
-</div>
-
-<div class="body">
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sid-label">Principal</div>
-    <div class="sid-item active" onclick="nav('dashboard',this)">
-      <div class="sid-dot" style="background:var(--accent)"></div>Dashboard
-    </div>
-    <div class="sid-item" onclick="nav('vendas',this)">
-      <div class="sid-dot" style="background:#86EFAC"></div>Vendas Recentes
-      <span class="sid-badge" id="badge-vendas">—</span>
-    </div>
-    <div class="sid-item" onclick="nav('ordens',this)">
-      <div class="sid-dot" style="background:#93C5FD"></div>Ordens de Serviço
-      <span class="sid-badge" id="badge-ordens">—</span>
-    </div>
-
-    <div class="sid-label">Pós-Venda</div>
-    <div class="sid-item" onclick="nav('posvenda',this)">
-      <div class="sid-dot" style="background:#F472B6"></div>Fluxo Pós-Venda
-      <span class="sid-badge warn" id="badge-pv">—</span>
-    </div>
-
-    <div class="sid-label">Financeiro</div>
-    <div class="sid-item" onclick="nav('receber',this)">
-      <div class="sid-dot" style="background:#FCD34D"></div>Contas a Receber
-    </div>
-    <div class="sid-item" onclick="nav('pagar',this)">
-      <div class="sid-dot" style="background:#FCA5A5"></div>Contas a Pagar
-    </div>
-
-    <div class="sid-label">Sistema</div>
-    <div class="sid-item" onclick="nav('apilog',this)">
-      <div class="sid-dot" style="background:#D8B4FE"></div>Log de Chamadas
-    </div>
-    <div class="sid-item" onclick="nav('comointegrar',this)">
-      <div class="sid-dot" style="background:var(--gold)"></div>Como Integrar
-    </div>
-  </div>
-
-  <!-- MAIN -->
-  <div class="main">
-
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="ph">
-        <div><div class="ph-title">Dashboard</div><div class="ph-sub">Dados em tempo real da SSótica</div></div>
-        <button class="btn-refresh" onclick="syncAll()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="grid4" style="margin-bottom:16px">
-        <div class="stat blue"><div class="stat-label">Vendas (30 dias)</div><div class="stat-val" id="d-vendas">—</div><div class="stat-sub ok">via SSótica</div></div>
-        <div class="stat green"><div class="stat-label">Ordens de Serviço</div><div class="stat-val" id="d-os">—</div><div class="stat-sub ok">via SSótica</div></div>
-        <div class="stat amber"><div class="stat-label">Pós-Venda Ativo</div><div class="stat-val" id="d-pv">—</div><div class="stat-sub">clientes nas etapas</div></div>
-        <div class="stat purple"><div class="stat-label">Última Sync</div><div class="stat-val" style="font-size:16px" id="d-sync">—</div><div class="stat-sub ok">automático</div></div>
-      </div>
-      <div class="grid2">
-        <div class="card">
-          <div class="card-title"><div class="sid-dot" style="background:#86EFAC"></div>Últimas Vendas</div>
-          <div id="d-ultimas-vendas"><div class="loading-center"><div class="spinner"></div></div></div>
-        </div>
-        <div class="card">
-          <div class="card-title"><div class="sid-dot" style="background:#D8B4FE"></div>Log de Atividade</div>
-          <div id="d-log"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- VENDAS -->
-    <div class="page" id="page-vendas">
-      <div class="ph">
-        <div><div class="ph-title">Vendas Recentes</div><div class="ph-sub">Dados de /integracoes/vendas/periodo</div></div>
-        <button class="btn-refresh" onclick="loadVendas()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:12px;color:var(--text3)">De:</label>
-          <input type="date" id="v-inicio" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <label style="font-size:12px;color:var(--text3)">Até:</label>
-          <input type="date" id="v-fim" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <button class="btn-refresh" onclick="loadVendas()">Buscar</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title"><div class="sid-dot" style="background:#86EFAC"></div>Resultado</div>
-        <div id="vendas-content"><div class="loading-center"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- ORDENS DE SERVIÇO -->
-    <div class="page" id="page-ordens">
-      <div class="ph">
-        <div><div class="ph-title">Ordens de Serviço</div><div class="ph-sub">Dados de /integracoes/ordens-servico/periodo</div></div>
-        <button class="btn-refresh" onclick="loadOrdens()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:12px;color:var(--text3)">De:</label>
-          <input type="date" id="os-inicio" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <label style="font-size:12px;color:var(--text3)">Até:</label>
-          <input type="date" id="os-fim" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <button class="btn-refresh" onclick="loadOrdens()">Buscar</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title"><div class="sid-dot" style="background:#93C5FD"></div>Resultado</div>
-        <div id="ordens-content"><div class="loading-center"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- PÓS-VENDA -->
-    <div class="page" id="page-posvenda">
-      <div class="ph">
-        <div><div class="ph-title">Fluxo Pós-Venda</div><div class="ph-sub">Clientes distribuídos por etapa — dados reais da SSótica</div></div>
-        <button class="btn-refresh" onclick="loadPosvenda()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="pv-pipeline" id="pv-pipeline"></div>
-      <div id="pv-steps"></div>
-    </div>
-
-    <!-- CONTAS A RECEBER -->
-    <div class="page" id="page-receber">
-      <div class="ph">
-        <div><div class="ph-title">Contas a Receber</div><div class="ph-sub">Dados de /integracoes/financeiro/contas-a-receber/periodo</div></div>
-        <button class="btn-refresh" onclick="loadReceber()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:12px;color:var(--text3)">De:</label>
-          <input type="date" id="r-inicio" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <label style="font-size:12px;color:var(--text3)">Até:</label>
-          <input type="date" id="r-fim" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <select id="r-tipo" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-            <option value="vencimento">Vencimento</option>
-            <option value="pagamento">Pagamento</option>
-            <option value="lancamento">Lançamento</option>
-          </select>
-          <button class="btn-refresh" onclick="loadReceber()">Buscar</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title"><div class="sid-dot" style="background:#FCD34D"></div>Resultado</div>
-        <div id="receber-content"><div class="loading-center"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- CONTAS A PAGAR -->
-    <div class="page" id="page-pagar">
-      <div class="ph">
-        <div><div class="ph-title">Contas a Pagar</div><div class="ph-sub">Dados de /integracoes/financeiro/contas-a-pagar/periodo</div></div>
-        <button class="btn-refresh" onclick="loadPagar()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:12px;color:var(--text3)">De:</label>
-          <input type="date" id="p-inicio" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <label style="font-size:12px;color:var(--text3)">Até:</label>
-          <input type="date" id="p-fim" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <button class="btn-refresh" onclick="loadPagar()">Buscar</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title"><div class="sid-dot" style="background:#FCA5A5"></div>Resultado</div>
-        <div id="pagar-content"><div class="loading-center"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- API LOG -->
-    <div class="page" id="page-apilog">
-      <div class="ph"><div><div class="ph-title">Log de Chamadas</div><div class="ph-sub">Registro de todas as requisições ao backend</div></div></div>
-      <div class="card"><div id="apilog-content"></div></div>
-    </div>
-
-    <!-- COMO INTEGRAR -->
-    <div class="page" id="page-comointegrar">
-      <div class="ph"><div><div class="ph-title">Como Integrar</div><div class="ph-sub">Endpoints disponíveis no backend ORO CRM</div></div></div>
-      <div class="notice"><strong>Backend:</strong> https://oro-crm-backend.onrender.com — todos os endpoints abaixo já estão prontos para uso.</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${[
-          ['GET','/api/status','Verifica conexão com a SSótica'],
-          ['GET','/api/vendas?inicio=AAAA-MM-DD&fim=AAAA-MM-DD','Vendas por período (máx 30 dias)'],
-          ['GET','/api/ordens?inicio=AAAA-MM-DD&fim=AAAA-MM-DD','Ordens de serviço por período'],
-          ['GET','/api/financeiro?inicio=AAAA-MM-DD&fim=AAAA-MM-DD','Extrato financeiro'],
-          ['GET','/api/contas-receber?inicio=AAAA-MM-DD&fim=AAAA-MM-DD','Contas a receber'],
-          ['GET','/api/contas-pagar?inicio=AAAA-MM-DD&fim=AAAA-MM-DD','Contas a pagar'],
-          ['GET','/api/produtos?page=1&perPage=100','Estoque e produtos'],
-          ['GET','/api/pos-venda','Clientes por etapa do pós-venda (últimos 400 dias)'],
-        ].map(([m,ep,desc])=>`<div class="card" style="padding:12px 14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <span style="font-family:'DM Mono',monospace;font-size:12px">
-              <span style="color:${m==='GET'?'#86EFAC':'#93C5FD'};font-weight:600">${m}</span>
-              <span style="color:var(--text2);margin-left:8px">${ep}</span>
-            </span>
-            <span class="badge b-green">Ativo</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3)">${desc}</div>
-        </div>`).join('')}
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- MODAL WA -->
-<div class="modal-ov" id="modal-wa">
-  <div class="modal">
-    <div class="modal-title">
-      <span id="modal-wa-title">WhatsApp</span>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div id="modal-wa-body"></div>
-  </div>
-</div>
-
-<script>
-// ─────────────────────────────────────────────────────────────────
-// CONFIG — URL do backend
-// ─────────────────────────────────────────────────────────────────
-const BACKEND = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3001'
-  : 'https://oro-crm-backend.onrender.com';
-
-const today = new Date();
-function dAgo(n){ const d=new Date(today); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
-function fmt(s){ if(!s)return'—'; try{ const [y,m,d]=(s.split('T')[0]).split('-'); return `${d}/${m}/${y}`; }catch{ return s; } }
-function brl(v){ if(!v&&v!==0)return'—'; return 'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
-function setDates(prefix, dias=30){ const i=document.getElementById(prefix+'-inicio'), f=document.getElementById(prefix+'-fim'); if(i)i.value=dAgo(dias); if(f)f.value=dAgo(0); }
-
-let LOGS = [];
-let pvContacted = {};
-
-// ── API Helper ──────────────────────────────────────────────────
-async function api(path) {
-  const res = await fetch(BACKEND + path);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+if (!SS_KEY) {
+  console.error('❌  SSOTICA_API_KEY não definida no .env');
+  process.exit(1);
 }
 
-function addLog(txt, ok=true){
-  const now = new Date().toLocaleTimeString('pt-BR');
-  LOGS.unshift({ txt, ok, t: now });
-  if (LOGS.length > 50) LOGS.pop();
-}
-
-// ── STATUS ──────────────────────────────────────────────────────
-async function checkStatus(){
-  const dot = document.getElementById('api-dot');
-  const lb  = document.getElementById('api-label');
-  try {
-    const r = await api('/api/status');
-    if (r.ok) {
-      dot.className = 'status-dot ok';
-      lb.textContent = 'SSótica API · Conectado · Dados reais';
-      addLog('GET /api/status → conectado', true);
-    } else {
-      dot.className = 'status-dot';
-      lb.textContent = 'Backend OK · SSótica: ' + (r.msg || 'verificando');
-      addLog('GET /api/status → ' + (r.msg||'false'), false);
+// Helper: chamada autenticada à SSótica
+async function ssotica(path, params = {}) {
+  const url = new URL(`${SS_BASE}${path}`);
+  Object.entries(params).forEach(([k, v]) => { if (v !== undefined) url.searchParams.set(k, v); });
+  const res = await fetch(url.toString(), {
+    headers: {
+      'Authorization': `Bearer ${SS_KEY}`,
+      'Content-Type':  'application/json'
     }
-    document.getElementById('api-ts').textContent = new Date().toLocaleTimeString('pt-BR');
-  } catch(e) {
-    dot.className = 'status-dot err';
-    lb.textContent = 'Backend offline — verifique o Render';
-    addLog('GET /api/status → ERRO: ' + e.message, false);
-  }
+  });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  return { status: res.status, data };
 }
 
-// ── SYNC DASHBOARD ──────────────────────────────────────────────
-async function syncAll(){
-  await checkStatus();
-  loadDashboard();
+// Datas auxiliares
+function hoje() { return new Date().toISOString().split('T')[0]; }
+function diasAtras(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().split('T')[0];
 }
 
-async function loadDashboard(){
+// ── Status ─────────────────────────────────────────────────────────────────
+app.get('/api/status', async (req, res) => {
   try {
-    const [vendas, ordens, pv] = await Promise.allSettled([
-      api('/api/vendas?inicio='+dAgo(30)+'&fim='+dAgo(0)),
-      api('/api/ordens?inicio='+dAgo(30)+'&fim='+dAgo(0)),
-      api('/api/pos-venda')
-    ]);
+    // Testa com uma busca de vendas do dia atual
+    const cnpj = SS_CNPJ || req.query.cnpj;
+    if (!cnpj) return res.json({ ok: false, msg: 'SSOTICA_CNPJ não configurado', ts: new Date().toISOString() });
+    const r = await ssotica('/integracoes/vendas/periodo', {
+      cnpj, inicio_periodo: hoje(), fim_periodo: hoje()
+    });
+    res.json({ ok: r.status === 200, status_http: r.status, ts: new Date().toISOString() });
+  } catch (e) {
+    res.json({ ok: false, erro: e.message, ts: new Date().toISOString() });
+  }
+});
 
-    // vendas
-    if(vendas.status==='fulfilled'){
-      const lista = vendas.value.data || vendas.value || [];
-      const arr = Array.isArray(lista) ? lista : [];
-      document.getElementById('d-vendas').textContent = arr.length;
-      document.getElementById('badge-vendas').textContent = arr.length;
-      addLog('GET /api/vendas → '+arr.length+' registros', true);
-      document.getElementById('d-ultimas-vendas').innerHTML = arr.length
-        ? arr.slice(0,6).map(v=>`<div class="act-item">
-            <div class="act-dot" style="background:var(--green)"></div>
-            <div style="flex:1">
-              <div class="act-text">${v.cliente||v.nome_cliente||v.cpf_cnpj||'Cliente'}</div>
-              <div class="act-meta">${fmt(v.data||v.data_venda||v.created_at)} · ${brl(v.valor_total||v.total||0)}</div>
-            </div>
-          </div>`).join('')
-        : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Nenhuma venda no período</div>';
+// ── Vendas por período ──────────────────────────────────────────────────────
+// GET /api/vendas?inicio=2025-01-01&fim=2025-01-31&page=1&perPage=100
+app.get('/api/vendas', async (req, res) => {
+  try {
+    const cnpj = SS_CNPJ || req.query.cnpj;
+    const inicio = req.query.inicio || diasAtras(30);
+    const fim    = req.query.fim    || hoje();
+    const page   = req.query.page   || 1;
+    const perPage = req.query.perPage || 100;
+    const { status, data } = await ssotica('/integracoes/vendas/periodo', {
+      cnpj, inicio_periodo: inicio, fim_periodo: fim, page, perPage
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// ── Ordens de Serviço por período ──────────────────────────────────────────
+// GET /api/ordens?inicio=2025-01-01&fim=2025-01-31
+app.get('/api/ordens', async (req, res) => {
+  try {
+    const cnpj = SS_CNPJ || req.query.cnpj;
+    const inicio = req.query.inicio || diasAtras(30);
+    const fim    = req.query.fim    || hoje();
+    const page   = req.query.page   || 1;
+    const perPage = req.query.perPage || 100;
+    const { status, data } = await ssotica('/integracoes/ordens-servico/periodo', {
+      cnpj, inicio_periodo: inicio, fim_periodo: fim, page, perPage
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// ── Financeiro / Extrato por período ───────────────────────────────────────
+app.get('/api/financeiro', async (req, res) => {
+  try {
+    const cnpj = SS_CNPJ || req.query.cnpj;
+    const inicio = req.query.inicio || diasAtras(30);
+    const fim    = req.query.fim    || hoje();
+    const { status, data } = await ssotica('/integracoes/financeiro/extrato/periodo', {
+      cnpj, inicio_periodo: inicio, fim_periodo: fim
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// ── Contas a Receber ────────────────────────────────────────────────────────
+app.get('/api/contas-receber', async (req, res) => {
+  try {
+    const empresa = SS_CNPJ || req.query.empresa;
+    const inicio  = req.query.inicio || diasAtras(30);
+    const fim     = req.query.fim    || hoje();
+    const { status, data } = await ssotica('/integracoes/financeiro/contas-a-receber/periodo', {
+      empresa, inicio_periodo: inicio, fim_periodo: fim,
+      tipo_periodo: req.query.tipo || 'vencimento',
+      page: req.query.page || 1, perPage: req.query.perPage || 100
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// ── Contas a Pagar ──────────────────────────────────────────────────────────
+app.get('/api/contas-pagar', async (req, res) => {
+  try {
+    const empresa = SS_CNPJ || req.query.empresa;
+    const inicio  = req.query.inicio || diasAtras(30);
+    const fim     = req.query.fim    || hoje();
+    const { status, data } = await ssotica('/integracoes/financeiro/contas-a-pagar/periodo', {
+      empresa, inicio_periodo: inicio, fim_periodo: fim,
+      tipo_periodo: req.query.tipo || 'vencimento',
+      page: req.query.page || 1, perPage: req.query.perPage || 100
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// ── Estoque / Produtos ──────────────────────────────────────────────────────
+app.get('/api/produtos', async (req, res) => {
+  try {
+    const empresa = SS_CNPJ || req.query.empresa;
+    const { status, data } = await ssotica('/produto/estoque/busca', {
+      empresa,
+      referencia: req.query.referencia,
+      id: req.query.id,
+      page: req.query.page || 1,
+      perPage: req.query.perPage || 100
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// ── Pós-Venda: vendas dos últimos 400 dias classificadas por etapa ─────────
+app.get('/api/pos-venda', async (req, res) => {
+  try {
+    const cnpj = SS_CNPJ || req.query.cnpj;
+    const hoje_dt = new Date();
+
+    // Busca vendas dos últimos 400 dias em páginas de 100
+    let todasVendas = [];
+    for (let p = 1; p <= 6; p++) {
+      const { data } = await ssotica('/integracoes/vendas/periodo', {
+        cnpj,
+        inicio_periodo: diasAtras(400),
+        fim_periodo: hoje(),
+        page: p, perPage: 100
+      });
+      const lista = Array.isArray(data) ? data : (data.data || data.vendas || []);
+      if (!Array.isArray(lista) || lista.length === 0) break;
+      todasVendas = todasVendas.concat(lista);
+      if (lista.length < 100) break;
     }
 
-    // ordens
-    if(ordens.status==='fulfilled'){
-      const lista = ordens.value.data || ordens.value || [];
-      const arr = Array.isArray(lista) ? lista : [];
-      document.getElementById('d-os').textContent = arr.length;
-      document.getElementById('badge-ordens').textContent = arr.length;
-      addLog('GET /api/ordens → '+arr.length+' registros', true);
-    }
+    const etapas = {
+      dias15: [], mes1: [], dias75: [],
+      meses6: [], meses8: [], meses10: [],
+      meses11: [], meses12: []
+    };
 
-    // pós-venda
-    if(pv.status==='fulfilled' && pv.value.etapas){
-      const total = pv.value.totalPosvenda || 0;
-      document.getElementById('d-pv').textContent = total;
-      document.getElementById('badge-pv').textContent = total;
-      window._pvData = pv.value.etapas;
-      addLog('GET /api/pos-venda → '+total+' clientes nas etapas', true);
-    }
+    todasVendas.forEach(v => {
+      // Campos reais da SSótica conforme documentado
+      if (!v.data) return;
+      const dias = Math.floor((hoje_dt - new Date(v.data)) / 86400000);
 
-    document.getElementById('d-sync').textContent = new Date().toLocaleTimeString('pt-BR');
-    renderDashLog();
-  } catch(e) {
-    addLog('Erro no dashboard: '+e.message, false);
+      const primeiroItem = v.itens && v.itens[0];
+      const produto = (primeiroItem && primeiroItem.produto && primeiroItem.produto.descricao) || '—';
+      const extraItens = v.itens && v.itens.length > 1 ? ` +${v.itens.length - 1}` : '';
+
+      const item = {
+        id:           v.id,
+        numero:       v.numero,
+        nome:         (v.cliente && v.cliente.nome) || '—',
+        cpf:          (v.cliente && v.cliente.cpf_cnpj) || '',
+        telefone:     (v.cliente && v.cliente.telefones && v.cliente.telefones[0] && v.cliente.telefones[0].numero) || '',
+        produto:      produto + extraItens,
+        dataVenda:    v.data,
+        valor:        v.valor_liquido,
+        diasDesdeCompra: dias,
+        responsavel:  (v.funcionario && v.funcionario.nome) || '—'
+      };
+
+      if      (dias >= 10  && dias <= 20)  etapas.dias15.push(item);
+      else if (dias >= 25  && dias <= 40)  etapas.mes1.push(item);
+      else if (dias >= 68  && dias <= 85)  etapas.dias75.push(item);
+      else if (dias >= 165 && dias <= 195) etapas.meses6.push(item);
+      else if (dias >= 225 && dias <= 255) etapas.meses8.push(item);
+      else if (dias >= 285 && dias <= 315) etapas.meses10.push(item);
+      else if (dias >= 315 && dias <= 345) etapas.meses11.push(item);
+      else if (dias >= 345 && dias <= 400) etapas.meses12.push(item);
+    });
+
+    const total = Object.values(etapas).reduce((a, b) => a + b.length, 0);
+    res.json({ etapas, totalPosvenda: total, totalVendas: todasVendas.length });
+  } catch (e) {
+    res.status(500).json({ erro: e.message });
   }
-}
+});
 
-function renderDashLog(){
-  document.getElementById('d-log').innerHTML = LOGS.slice(0,6).map(l=>`
-    <div class="act-item">
-      <div class="act-dot" style="background:${l.ok?'var(--green)':'var(--red)'}"></div>
-      <div style="flex:1"><div class="act-text">${l.txt}</div><div class="act-meta">${l.t}</div></div>
-    </div>`).join('');
-}
-
-// ── VENDAS ──────────────────────────────────────────────────────
-async function loadVendas(){
-  const ini = document.getElementById('v-inicio').value || dAgo(30);
-  const fim = document.getElementById('v-fim').value   || dAgo(0);
-  document.getElementById('vendas-content').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-  try {
-    const r = await api('/api/vendas?inicio='+ini+'&fim='+fim);
-    const arr = Array.isArray(r) ? r : (r.data || r.vendas || []);
-    addLog('GET /api/vendas → '+arr.length+' registros', true);
-    document.getElementById('badge-vendas').textContent = arr.length;
-    if(!arr.length){ document.getElementById('vendas-content').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Nenhuma venda no período selecionado</div>'; return; }
-    document.getElementById('vendas-content').innerHTML = `<div class="tbl-wrap"><table>
-      <thead><tr><th>Cliente</th><th>Data</th><th>Valor</th><th>NF</th><th>Vendedor</th><th>Status</th></tr></thead>
-      <tbody>${arr.map(v=>`<tr>
-        <td style="color:var(--text);font-weight:500">${v.cliente||v.nome_cliente||'—'}</td>
-        <td>${fmt(v.data||v.data_venda)}</td>
-        <td style="color:var(--green);font-weight:600">${brl(v.valor_total||v.total)}</td>
-        <td style="font-size:11px">${v.numero_nf||v.nf||'—'}</td>
-        <td style="font-size:12px">${v.vendedor||v.funcionario||'—'}</td>
-        <td><span class="badge ${v.status==='Cancelada'?'b-red':'b-green'}">${v.status||'OK'}</span></td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
-  } catch(e) {
-    addLog('Erro vendas: '+e.message, false);
-    document.getElementById('vendas-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro ao carregar: '+e.message+'</div>';
-  }
-}
-
-// ── ORDENS ──────────────────────────────────────────────────────
-async function loadOrdens(){
-  const ini = document.getElementById('os-inicio').value || dAgo(30);
-  const fim = document.getElementById('os-fim').value   || dAgo(0);
-  document.getElementById('ordens-content').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-  try {
-    const r = await api('/api/ordens?inicio='+ini+'&fim='+fim);
-    const arr = Array.isArray(r) ? r : (r.data || r.ordens || []);
-    addLog('GET /api/ordens → '+arr.length+' registros', true);
-    document.getElementById('badge-ordens').textContent = arr.length;
-    if(!arr.length){ document.getElementById('ordens-content').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Nenhuma OS no período</div>'; return; }
-    document.getElementById('ordens-content').innerHTML = `<div class="tbl-wrap"><table>
-      <thead><tr><th>Nº OS</th><th>Cliente</th><th>Data</th><th>Produto</th><th>Valor</th><th>Etapa</th><th>Vendedor</th></tr></thead>
-      <tbody>${arr.map(o=>`<tr>
-        <td style="font-size:11px;color:var(--accent)">#${o.numero||o.id||'—'}</td>
-        <td style="color:var(--text);font-weight:500">${o.cliente||o.nome_cliente||'—'}</td>
-        <td>${fmt(o.data||o.data_venda||o.created_at)}</td>
-        <td style="font-size:12px">${o.produto||o.descricao||'—'}</td>
-        <td style="color:var(--green);font-weight:600">${brl(o.valor_total||o.total)}</td>
-        <td><span class="badge b-blue">${o.etapa||o.status||'—'}</span></td>
-        <td style="font-size:12px">${o.vendedor||o.funcionario||'—'}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
-  } catch(e) {
-    addLog('Erro ordens: '+e.message, false);
-    document.getElementById('ordens-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';
-  }
-}
-
-// ── PÓS-VENDA ───────────────────────────────────────────────────
-const PV_CFG = [
-  { id:'dias15',  label:'15 Dias',   sub:'Adaptação',        icon:'😊', cor:'#3B82C4', dias:'10–20',
-    obj:'Verificar adaptação ao produto', wa:(n,p)=>`Olá, ${n}! 😊 Aqui é da *ORO Óticas*.\n\nJá faz 15 dias desde que você levou seu(sua) ${p}. Como está sendo a adaptação? Tem alguma dúvida?\n\nEstamos aqui para ajudar! 🤍` },
-  { id:'mes1',    label:'1 Mês',     sub:'Adaptação completa',icon:'✅', cor:'#22C55E', dias:'25–40',
-    obj:'Confirmar satisfação com o produto', wa:(n,p)=>`Olá, ${n}! 🌟 Da *ORO Óticas*.\n\nJá faz 1 mês da sua compra! Como você está com o(a) ${p}? Se quiser passar para um ajuste ou limpeza, é totalmente grátis! 😄` },
-  { id:'dias75',  label:'75 Dias',   sub:'Ajuste e limpeza', icon:'🔧', cor:'#F59E0B', dias:'68–85',
-    obj:'Convidar para ajuste e limpeza gratuita', wa:(n,p)=>`Olá, ${n}! 👓 Da *ORO Óticas*!\n\nJá se passaram 75 dias da sua compra! Chegou a hora do *ajuste e limpeza grátis* aqui na loja!\n\nQuando você tem um tempinho esta semana? 😊` },
-  { id:'meses6',  label:'6 Meses',   sub:'Manutenção',       icon:'🧼', cor:'#06B6D4', dias:'165–195',
-    obj:'Manutenção semestral gratuita', wa:(n,p)=>`Oi, ${n}! 💙 Da *ORO Óticas*.\n\nJá fazem 6 meses da sua compra! Que tal passar para uma *limpeza profissional e ajuste completo* grátis?\n\nÓculos bem cuidados duram muito mais! Quando podemos te esperar? 🤍` },
-  { id:'meses8',  label:'8 Meses',   sub:'Ajuste e limpeza', icon:'✨', cor:'#8B5CF6', dias:'225–255',
-    obj:'Manutenção e verificação geral', wa:(n,p)=>`Olá, ${n}! ✨ Da *ORO Óticas*.\n\nFazem 8 meses! Passando para convidar para mais um *ajuste e limpeza grátis*.\n\nAproveitamos para mostrar as novidades também! 😉 Quando te vemos?` },
-  { id:'meses10', label:'10 Meses',  sub:'Última manutenção',icon:'🔩', cor:'#EC4899', dias:'285–315',
-    obj:'Manutenção antes do vencimento da receita', wa:(n,p)=>`Oi, ${n}! 💕 Da *ORO Óticas*.\n\nJá fazem 10 meses da sua compra! Venha fazer o *ajuste e limpeza completa*, é grátis! 🤍\n\nAlém disso, sua receita vai vencer em breve — podemos te ajudar a agendar um exame! 👓` },
-  { id:'meses11', label:'11 Meses',  sub:'Aviso de vencimento',icon:'⚠️',cor:'#F97316', dias:'315–345',
-    obj:'Avisar que receita vence no próximo mês', wa:(n,p)=>`Oi, ${n}! 👋 Da *ORO Óticas*.\n\n⚠️ Sua *receita de óculos vence no próximo mês!* Para continuar enxergando bem, é importante fazer o exame em dia.\n\nPodemos te ajudar a agendar. Quer que a gente cuide disso? 😊` },
-  { id:'meses12', label:'12 Meses',  sub:'Agendar exame',    icon:'📋', cor:'#EF4444', dias:'345–400',
-    obj:'Receita vencida — agendar novo exame de vista', wa:(n,p)=>`Olá, ${n}! 😊 Da *ORO Óticas*.\n\n📋 Sua *receita de óculos completou 1 ano* e precisa ser renovada!\n\nQue tal agendar seu *exame de vista*? A gente te ajuda com tudo! 💙` },
-];
-
-let pvOpen = {};
-
-async function loadPosvenda(){
-  document.getElementById('pv-pipeline').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Carregando...</div>';
-  document.getElementById('pv-steps').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-  try {
-    const r = await api('/api/pos-venda');
-    window._pvData = r.etapas || {};
-    addLog('GET /api/pos-venda → '+r.totalPosvenda+' clientes', true);
-    document.getElementById('badge-pv').textContent = r.totalPosvenda || 0;
-    document.getElementById('d-pv').textContent = r.totalPosvenda || 0;
-    renderPvPipeline();
-    renderPvSteps();
-  } catch(e) {
-    addLog('Erro pos-venda: '+e.message, false);
-    document.getElementById('pv-steps').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';
-  }
-}
-
-function renderPvPipeline(){
-  document.getElementById('pv-pipeline').innerHTML = PV_CFG.map(s=>{
-    const cnt = (window._pvData && window._pvData[s.id] ? window._pvData[s.id].length : 0);
-    return `<div class="pv-block" style="background:${s.cor}18;border:1px solid ${s.cor}40" onclick="scrollToStep('${s.id}')">
-      <div class="pv-bname" style="color:${s.cor}">${s.label}</div>
-      <div class="pv-bcount" style="color:${cnt>0?s.cor:'var(--text3)'}">${cnt}</div>
-      <div class="pv-bsub" style="color:${s.cor}">${s.icon}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderPvSteps(){
-  document.getElementById('pv-steps').innerHTML = PV_CFG.map(s=>{
-    const clientes = (window._pvData && window._pvData[s.id]) ? window._pvData[s.id] : [];
-    const open = pvOpen[s.id] !== false;
-    return `<div class="pv-step" id="step-${s.id}" style="background:${s.cor}0d;border-color:${s.cor}30">
-      <div class="pv-step-hdr" onclick="togglePvStep('${s.id}')">
-        <div class="pv-step-icon" style="background:${s.cor}18;border:1px solid ${s.cor}30">${s.icon}</div>
-        <div class="pv-step-info">
-          <div class="pv-step-title" style="color:${s.cor}">${s.label} — ${s.sub}</div>
-          <div class="pv-step-desc">${s.obj} · <span style="color:${s.cor}">${s.dias} dias</span></div>
-        </div>
-        <div class="pv-step-count" style="color:${clientes.length>0?s.cor:'var(--text3)'}">${clientes.length}</div>
-        <span class="pv-chev ${open?'open':''}">▼</span>
-      </div>
-      <div class="pv-body ${open?'open':''}">
-        ${clientes.length===0
-          ? '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Nenhum cliente nesta etapa</div>'
-          : `<div class="wa-box">
-              <div class="wa-label">💬 Mensagem WhatsApp sugerida</div>
-              <div id="wa-${s.id}" style="white-space:pre-line;font-size:13px;line-height:1.6">${s.wa(clientes[0].nome||'Cliente', clientes[0].produto||'produto')}</div>
-              <button class="wa-copy" onclick="copyWa('${s.id}')">Copiar</button>
-            </div>
-            <div class="tbl-wrap" style="padding:0 0 4px">
-              <table>
-                <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Produto</th><th>OS</th><th>Dias</th><th>Vendedor</th><th></th></tr></thead>
-                <tbody>${clientes.map(c=>`<tr class="${pvContacted[c.id]?'contacted':''}" id="pvrow-${c.id}">
-                  <td style="color:var(--text);font-weight:500">${c.nome||'—'}</td>
-                  <td style="font-size:11px">${c.cpf||'—'}</td>
-                  <td>${c.telefone||'—'}</td>
-                  <td style="font-size:12px">${c.produto||'—'}</td>
-                  <td style="font-size:11px;color:var(--accent)">#${c.id||'—'}</td>
-                  <td style="font-weight:600;color:${s.cor}">${c.diasDesdeCompra}d</td>
-                  <td style="font-size:12px">${c.responsavel||'—'}</td>
-                  <td>
-                    <div style="display:flex;gap:4px">
-                      <button class="btn-sm btn-green" onclick="openWaModal('${s.id}',${JSON.stringify(c).replace(/'/g,'&apos;')})">💬</button>
-                      <button class="btn-sm ${pvContacted[c.id]?'btn-blue':'btn-outline'}" onclick="markPvContacted('${c.id}')">
-                        ${pvContacted[c.id]?'✓':'Contatar'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>`).join('')}</tbody>
-              </table>
-            </div>`
-        }
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function togglePvStep(id){ pvOpen[id] = !(pvOpen[id]!==false); document.querySelector(`#step-${id} .pv-body`).classList.toggle('open'); document.querySelector(`#step-${id} .pv-chev`).classList.toggle('open'); }
-function scrollToStep(id){ document.getElementById('step-'+id)?.scrollIntoView({behavior:'smooth',block:'start'}); }
-function copyWa(id){ const el=document.getElementById('wa-'+id); if(!el)return; navigator.clipboard.writeText(el.innerText).then(()=>{ const btn=el.parentElement.querySelector('.wa-copy'); if(btn){btn.textContent='✓ Copiado!';setTimeout(()=>btn.textContent='Copiar',2000);} }); }
-function markPvContacted(id){ pvContacted[id]=!pvContacted[id]; renderPvSteps(); }
-
-function openWaModal(stepId, c){
-  const s = PV_CFG.find(x=>x.id===stepId);
-  if(!s||!c)return;
-  const msg = s.wa(c.nome||'Cliente', c.produto||'produto');
-  document.getElementById('modal-wa-title').textContent = 'WhatsApp — '+(c.nome||'Cliente');
-  document.getElementById('modal-wa-body').innerHTML = `
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Para: <strong style="color:var(--text)">${c.telefone||'—'}</strong> · Etapa: <strong style="color:${s.cor}">${s.label}</strong></div>
-    <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:14px;white-space:pre-line;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px" id="modal-msg">${msg}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${c.telefone?`<a href="https://wa.me/55${(c.telefone||'').replace(/\D/g,'')}" target="_blank" style="text-decoration:none"><button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600">💬 Abrir WhatsApp</button></a>`:''}
-      <button onclick="navigator.clipboard.writeText(document.getElementById('modal-msg').innerText).then(()=>this.textContent='✓ Copiado!')" style="background:rgba(59,130,196,.15);border:1px solid rgba(59,130,196,.3);color:var(--accent);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600">📋 Copiar</button>
-      <button onclick="markPvContacted('${c.id}');closeModal()" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86EFAC;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600">✓ Marcar Contatado</button>
-    </div>`;
-  document.getElementById('modal-wa').classList.add('open');
-}
-function closeModal(){ document.getElementById('modal-wa').classList.remove('open'); }
-document.getElementById('modal-wa').addEventListener('click',e=>{ if(e.target===e.currentTarget)closeModal(); });
-
-// ── FINANCEIRO ──────────────────────────────────────────────────
-async function loadReceber(){
-  const ini=document.getElementById('r-inicio').value||dAgo(30);
-  const fim=document.getElementById('r-fim').value||dAgo(0);
-  const tipo=document.getElementById('r-tipo').value||'vencimento';
-  document.getElementById('receber-content').innerHTML='<div class="loading-center"><div class="spinner"></div></div>';
-  try {
-    const r = await api('/api/contas-receber?inicio='+ini+'&fim='+fim+'&tipo='+tipo);
-    const arr = Array.isArray(r)?r:(r.data||r.contas||[]);
-    addLog('GET /api/contas-receber → '+arr.length+' registros', true);
-    if(!arr.length){document.getElementById('receber-content').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Nenhum registro no período</div>';return;}
-    const total = arr.reduce((s,i)=>s+Number(i.valor||i.valor_total||0),0);
-    document.getElementById('receber-content').innerHTML=`
-      <div style="margin-bottom:14px;padding:10px 14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:13px;color:#86EFAC">
-        Total: <strong>${brl(total)}</strong> · ${arr.length} lançamentos
-      </div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>Cliente</th><th>Vencimento</th><th>Valor</th><th>Doc.</th><th>Status</th></tr></thead>
-        <tbody>${arr.map(c=>`<tr>
-          <td style="color:var(--text);font-weight:500">${c.cliente||c.nome_cliente||'—'}</td>
-          <td>${fmt(c.vencimento||c.data_vencimento)}</td>
-          <td style="color:var(--green);font-weight:600">${brl(c.valor||c.valor_total)}</td>
-          <td style="font-size:11px">${c.documento||c.numero||'—'}</td>
-          <td><span class="badge ${c.situacao==='Pago'||c.status==='Pago'?'b-green':c.situacao==='Vencido'||c.status==='Vencido'?'b-red':'b-amber'}">${c.situacao||c.status||'Aberto'}</span></td>
-        </tr>`).join('')}</tbody>
-      </table></div>`;
-  } catch(e) {
-    addLog('Erro receber: '+e.message,false);
-    document.getElementById('receber-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';
-  }
-}
-
-async function loadPagar(){
-  const ini=document.getElementById('p-inicio').value||dAgo(30);
-  const fim=document.getElementById('p-fim').value||dAgo(0);
-  document.getElementById('pagar-content').innerHTML='<div class="loading-center"><div class="spinner"></div></div>';
-  try {
-    const r = await api('/api/contas-pagar?inicio='+ini+'&fim='+fim);
-    const arr = Array.isArray(r)?r:(r.data||r.contas||[]);
-    addLog('GET /api/contas-pagar → '+arr.length+' registros', true);
-    if(!arr.length){document.getElementById('pagar-content').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Nenhum registro no período</div>';return;}
-    const total = arr.reduce((s,i)=>s+Number(i.valor||i.valor_total||0),0);
-    document.getElementById('pagar-content').innerHTML=`
-      <div style="margin-bottom:14px;padding:10px 14px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);border-radius:8px;font-size:13px;color:#FCA5A5">
-        Total: <strong>${brl(total)}</strong> · ${arr.length} lançamentos
-      </div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>Fornecedor/Desc.</th><th>Vencimento</th><th>Valor</th><th>Doc.</th><th>Status</th></tr></thead>
-        <tbody>${arr.map(c=>`<tr>
-          <td style="color:var(--text);font-weight:500">${c.fornecedor||c.descricao||c.nome||'—'}</td>
-          <td>${fmt(c.vencimento||c.data_vencimento)}</td>
-          <td style="color:var(--red);font-weight:600">${brl(c.valor||c.valor_total)}</td>
-          <td style="font-size:11px">${c.documento||c.numero||'—'}</td>
-          <td><span class="badge ${c.situacao==='Pago'||c.status==='Pago'?'b-green':c.situacao==='Vencido'||c.status==='Vencido'?'b-red':'b-amber'}">${c.situacao||c.status||'Aberto'}</span></td>
-        </tr>`).join('')}</tbody>
-      </table></div>`;
-  } catch(e) {
-    addLog('Erro pagar: '+e.message,false);
-    document.getElementById('pagar-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';
-  }
-}
-
-// ── API LOG ─────────────────────────────────────────────────────
-function renderApiLog(){
-  document.getElementById('apilog-content').innerHTML = LOGS.length
-    ? LOGS.map(l=>`<div class="log-row ${l.ok?'ok':'err'}">
-        <span>${l.ok?'✓':'⚠'}</span>
-        <span class="log-txt">${l.txt}</span>
-        <span class="log-t">${l.t}</span>
-        <span class="log-st ${l.ok?'ok':'err'}">${l.ok?'OK':'ERR'}</span>
-      </div>`).join('')
-    : '<div style="color:var(--text3);font-size:13px;padding:16px">Nenhuma chamada ainda</div>';
-}
-
-// ── NAVIGATION ──────────────────────────────────────────────────
-function nav(page, el){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.sid-item').forEach(s=>s.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
-  if(el) el.classList.add('active');
-  if(page==='vendas')    { setDates('v');  loadVendas(); }
-  if(page==='ordens')    { setDates('os'); loadOrdens(); }
-  if(page==='posvenda')  { loadPosvenda(); }
-  if(page==='receber')   { setDates('r');  loadReceber(); }
-  if(page==='pagar')     { setDates('p');  loadPagar(); }
-  if(page==='apilog')    { renderApiLog(); }
-}
-
-// ── INIT ────────────────────────────────────────────────────────
-function init(){
-  setDates('v'); setDates('os'); setDates('r'); setDates('p');
-  document.getElementById('api-ts').textContent = new Date().toLocaleTimeString('pt-BR');
-  syncAll();
-  setInterval(syncAll, 30*60*1000);
-}
-
-init();
-</script>
-</body>
-</html>
+app.listen(PORT, () => {
+  console.log(`✅  ORO CRM Backend rodando em http://localhost:${PORT}`);
+  console.log(`🔑  SSótica API Key: ****${SS_KEY ? SS_KEY.slice(-6) : 'NÃO DEFINIDA'}`);
+  console.log(`🏪  CNPJ configurado: ${SS_CNPJ || 'NÃO DEFINIDO — passe via ?cnpj= ou configure SSOTICA_CNPJ'}`);
+});
