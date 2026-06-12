@@ -5,938 +5,1467 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ORO Óticas — CRM</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-  :root{
-    --navy:#0B1F3A;--navy2:#122848;--blue:#1E4D8C;--accent:#3B82C4;
-    --gold:#C9A84C;--gold2:#E8C876;
-    --text:#F0F4FA;--text2:#A8BDD4;--text3:#6B8BAD;
-    --border:rgba(59,130,196,0.18);--border2:rgba(59,130,196,0.35);
-    --green:#22C55E;--amber:#F59E0B;--red:#EF4444;--purple:#A855F7;
-    --card:rgba(18,40,72,0.7);
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --navy:#0B1F3A;--navy2:#122848;--blue:#1E4D8C;--accent:#3B82C4;
+  --gold:#C9A84C;--gold2:#E8C876;
+  --text:#F0F4FA;--text2:#A8BDD4;--text3:#6B8BAD;
+  --border:rgba(59,130,196,0.18);--border2:rgba(59,130,196,0.35);
+  --green:#22C55E;--amber:#F59E0B;--red:#EF4444;--purple:#A855F7;
+  --pink:#EC4899;--card:rgba(18,40,72,0.7);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--navy2);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .brand{font-size:18px;font-weight:700;letter-spacing:3px;}
-  .brand span{color:var(--gold);}
-  .api-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);}
-  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse 2s infinite;}
-  .status-dot.ok{background:var(--green);}
-  .status-dot.err{background:var(--red);animation:none;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:50px;background:var(--navy2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.brand{font-size:17px;font-weight:700;letter-spacing:3px;}
+.brand span{color:var(--gold);}
+.topbar-right{display:flex;align-items:center;gap:16px;}
+.api-status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text3);}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse 2s infinite;}
+.status-dot.ok{background:var(--green);}
+.status-dot.err{background:var(--red);animation:none;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 
-  .body{display:flex;flex:1;overflow:hidden;}
-  .sidebar{width:210px;background:var(--navy2);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;overflow-y:auto;}
-  .main{flex:1;overflow-y:auto;padding:20px;}
+/* META TOPBAR */
+.meta-top{display:flex;align-items:center;gap:10px;font-size:12px;background:rgba(11,31,58,.6);border:1px solid var(--border);border-radius:8px;padding:5px 12px;}
+.meta-top-bar{width:120px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;}
+.meta-top-fill{height:100%;border-radius:3px;transition:width .5s;}
 
-  .sid-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:0 16px;margin-bottom:4px;margin-top:14px;}
-  .sid-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px;transition:all .15s;border:1px solid transparent;margin:0 6px 2px;}
-  .sid-item:hover{background:rgba(59,130,196,.1);color:var(--text2);}
-  .sid-item.active{background:rgba(37,99,170,.25);color:var(--text);border-color:rgba(59,130,196,.25);}
-  .sid-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-  .sid-badge{margin-left:auto;background:rgba(59,130,196,.2);color:var(--accent);font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;}
-  .sid-badge.warn{background:rgba(245,158,11,.2);color:#FCD34D;}
-  .sid-badge.pink{background:rgba(236,72,153,.2);color:#F9A8D4;}
+/* LAYOUT */
+.body{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:205px;background:var(--navy2);border-right:1px solid var(--border);padding:14px 0;flex-shrink:0;overflow-y:auto;}
+.main{flex:1;overflow-y:auto;padding:18px 20px;}
 
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
-  .card-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-  .stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;}
-  .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
-  .stat.blue::before{background:linear-gradient(90deg,var(--blue),var(--accent));}
-  .stat.green::before{background:linear-gradient(90deg,#16A34A,var(--green));}
-  .stat.amber::before{background:linear-gradient(90deg,#B45309,var(--amber));}
-  .stat.purple::before{background:linear-gradient(90deg,#7C3AED,var(--purple));}
-  .stat.red::before{background:linear-gradient(90deg,#B91C1C,var(--red));}
-  .stat.gold::before{background:linear-gradient(90deg,#92400E,var(--gold));}
-  .stat-label{font-size:10px;color:var(--text3);margin-bottom:6px;}
-  .stat-val{font-size:26px;font-weight:700;line-height:1;}
-  .stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
-  .stat-sub.ok{color:var(--green);}
+/* SIDEBAR */
+.sid-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:0 14px;margin-bottom:4px;margin-top:14px;}
+.sid-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px;transition:all .15s;border:1px solid transparent;margin:0 5px 2px;}
+.sid-item:hover{background:rgba(59,130,196,.1);color:var(--text2);}
+.sid-item.active{background:rgba(37,99,170,.25);color:var(--text);border-color:rgba(59,130,196,.25);}
+.sid-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sid-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;}
+.sb-blue{background:rgba(59,130,196,.2);color:var(--accent);}
+.sb-amber{background:rgba(245,158,11,.2);color:#FCD34D;}
+.sb-pink{background:rgba(236,72,153,.2);color:#F9A8D4;}
+.sb-green{background:rgba(34,197,94,.2);color:#86EFAC;}
+.sb-red{background:rgba(239,68,68,.2);color:#FCA5A5;}
 
-  .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;}
-  .ph-title{font-size:20px;font-weight:600;}
-  .ph-sub{font-size:12px;color:var(--text3);margin-top:3px;}
-  .page{display:none;}
-  .page.active{display:block;}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.card-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat.c-blue::before{background:linear-gradient(90deg,var(--blue),var(--accent));}
+.stat.c-green::before{background:linear-gradient(90deg,#16A34A,var(--green));}
+.stat.c-amber::before{background:linear-gradient(90deg,#B45309,var(--amber));}
+.stat.c-purple::before{background:linear-gradient(90deg,#7C3AED,var(--purple));}
+.stat.c-red::before{background:linear-gradient(90deg,#B91C1C,var(--red));}
+.stat.c-pink::before{background:linear-gradient(90deg,#9D174D,var(--pink));}
+.stat.c-gold::before{background:linear-gradient(90deg,#92400E,var(--gold));}
+.stat-lbl{font-size:10px;color:var(--text3);margin-bottom:5px;}
+.stat-val{font-size:24px;font-weight:700;line-height:1;}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.stat-sub.ok{color:var(--green);}
+.stat-sub.warn{color:var(--amber);}
+.stat-sub.bad{color:var(--red);}
 
-  .btn-refresh{display:flex;align-items:center;gap:6px;background:rgba(37,99,170,.2);border:1px solid rgba(59,130,196,.35);color:var(--accent);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .2s;}
-  .btn-refresh:hover{background:rgba(37,99,170,.35);}
-  .btn-sm{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;font-family:'DM Sans',sans-serif;transition:all .15s;}
-  .btn-blue{background:rgba(37,99,170,.2);border-color:rgba(37,99,170,.4);color:#93C5FD;}
-  .btn-green{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#86EFAC;}
-  .btn-green:hover{background:rgba(34,197,94,.25);}
-  .btn-msg{background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);color:rgba(37,211,102,.9);padding:5px 9px;}
+/* PAGE */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.ph-title{font-size:20px;font-weight:600;}
+.ph-sub{font-size:12px;color:var(--text3);margin-top:3px;}
+.page{display:none;}
+.page.active{display:block;}
 
-  .tbl-wrap{overflow-x:auto;}
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  th{text-align:left;padding:9px 12px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap;}
-  th:hover{color:var(--text2);}
-  th .sort-icon{margin-left:4px;opacity:.5;}
-  th.sort-asc .sort-icon::after{content:'▲';}
-  th.sort-desc .sort-icon::after{content:'▼';}
-  th:not(.sort-asc):not(.sort-desc) .sort-icon::after{content:'⇅';}
-  td{padding:10px 12px;border-bottom:1px solid rgba(59,130,196,.07);color:var(--text2);}
-  tr:hover td{background:rgba(59,130,196,.04);}
-  tr.contacted-row{opacity:.35;text-decoration:line-through;}
+/* BUTTONS */
+.btn-r{display:flex;align-items:center;gap:6px;background:rgba(37,99,170,.2);border:1px solid rgba(59,130,196,.35);color:var(--accent);padding:6px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;transition:all .2s;}
+.btn-r:hover{background:rgba(37,99,170,.35);}
+.btn-sm{padding:4px 11px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;font-family:inherit;transition:all .15s;}
+.btn-wa{background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);color:#86EFAC;}
+.btn-wa:hover{background:rgba(37,211,102,.2);}
+.btn-out{background:transparent;border-color:var(--border2);color:var(--text3);}
+.btn-out:hover{background:rgba(59,130,196,.1);color:var(--text2);}
+.btn-done{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#86EFAC;}
 
-  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
-  .b-blue{background:rgba(37,99,170,.2);color:#93C5FD;border:1px solid rgba(37,99,170,.3);}
-  .b-green{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.25);}
-  .b-amber{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.25);}
-  .b-red{background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.25);}
-  .b-pink{background:rgba(236,72,153,.15);color:#F9A8D4;border:1px solid rgba(236,72,153,.25);}
+/* TABLE */
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:8px 11px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap;}
+th:hover{color:var(--text2);}
+.si{margin-left:3px;opacity:.4;}
+th.sorted .si{opacity:1;color:var(--accent);}
+td{padding:9px 11px;border-bottom:1px solid rgba(59,130,196,.06);color:var(--text2);}
+tr:hover td{background:rgba(59,130,196,.04);}
 
-  .act-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(59,130,196,.07);align-items:flex-start;}
-  .act-item:last-child{border-bottom:none;}
-  .act-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
-  .act-text{font-size:13px;color:var(--text2);flex:1;line-height:1.4;}
-  .act-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+/* BADGES */
+.b{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;}
+.b-blue{background:rgba(37,99,170,.2);color:#93C5FD;border:1px solid rgba(37,99,170,.3);}
+.b-green{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.25);}
+.b-amber{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.25);}
+.b-red{background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.25);}
+.b-gray{background:rgba(107,139,173,.12);color:var(--text3);border:1px solid rgba(107,139,173,.2);}
+.b-pink{background:rgba(236,72,153,.15);color:#F9A8D4;border:1px solid rgba(236,72,153,.25);}
+.b-gold{background:rgba(201,168,76,.15);color:#E8C876;border:1px solid rgba(201,168,76,.3);}
 
-  /* PÓS-VENDA */
-  .pv-pipeline{display:flex;gap:0;margin-bottom:16px;overflow-x:auto;border-radius:10px;overflow:hidden;}
-  .pv-block{flex:0 0 auto;min-width:90px;padding:10px 8px;text-align:center;cursor:pointer;}
-  .pv-block:hover{filter:brightness(1.15);}
-  .pv-bname{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
-  .pv-bcount{font-size:20px;font-weight:700;margin-top:3px;}
-  .pv-bsub{font-size:9px;opacity:.7;margin-top:1px;}
+/* ACT ITEM */
+.ai{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid rgba(59,130,196,.07);align-items:flex-start;}
+.ai:last-child{border-bottom:none;}
+.ai-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.ai-text{font-size:13px;color:var(--text2);flex:1;line-height:1.4;}
+.ai-meta{font-size:11px;color:var(--text3);margin-top:2px;}
 
-  .pv-step{margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
-  .pv-step-hdr{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;transition:background .15s;user-select:none;}
-  .pv-step-hdr:hover{background:rgba(59,130,196,.06);}
-  .pv-step-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-  .pv-step-info{flex:1;}
-  .pv-step-title{font-size:14px;font-weight:600;}
-  .pv-step-desc{font-size:11px;color:var(--text3);margin-top:2px;}
-  .pv-step-count{font-size:18px;font-weight:700;min-width:24px;text-align:right;}
-  .pv-chev{color:var(--text3);font-size:11px;transition:transform .2s;margin-left:4px;}
-  .pv-chev.open{transform:rotate(180deg);}
-  .pv-body{display:none;border-top:1px solid var(--border);}
-  .pv-body.open{display:block;}
+/* PÓS-VENDA */
+.pv-pipe{display:flex;margin-bottom:14px;overflow-x:auto;}
+.pv-blk{flex:0 0 auto;min-width:85px;padding:9px 7px;text-align:center;cursor:pointer;position:relative;}
+.pv-blk:first-child{border-radius:10px 0 0 10px;}
+.pv-blk:last-child{border-radius:0 10px 10px 0;}
+.pv-blk::after{content:'›';position:absolute;right:-4px;top:50%;transform:translateY(-50%);font-size:13px;color:rgba(255,255,255,.15);}
+.pv-blk:last-child::after{display:none;}
+.pv-blk:hover{filter:brightness(1.15);}
+.pv-bn{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
+.pv-bc{font-size:17px;font-weight:700;margin-top:2px;}
+.pv-step{margin-bottom:10px;border-radius:12px;overflow:hidden;border:1px solid var(--border);}
+.pv-hdr{display:flex;align-items:center;gap:11px;padding:12px 15px;cursor:pointer;transition:background .15s;user-select:none;}
+.pv-hdr:hover{background:rgba(59,130,196,.06);}
+.pv-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.pv-info{flex:1;}
+.pv-title{font-size:14px;font-weight:600;}
+.pv-desc{font-size:11px;color:var(--text3);margin-top:2px;}
+.pv-cnt{font-size:17px;font-weight:700;min-width:22px;text-align:right;}
+.pv-chev{color:var(--text3);font-size:11px;transition:transform .2s;margin-left:4px;}
+.pv-chev.open{transform:rotate(180deg);}
+.pv-body{display:none;border-top:1px solid var(--border);}
+.pv-body.open{display:block;}
+.wa-box{background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:11px 13px;margin:11px 15px;font-size:13px;color:var(--text2);line-height:1.7;position:relative;}
+.wa-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(37,211,102,.7);font-weight:600;margin-bottom:5px;}
+.wa-copy{position:absolute;top:9px;right:9px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:rgba(37,211,102,.9);padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;}
 
-  .wa-box{background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:14px 16px;margin:12px 16px;font-size:13px;color:var(--text2);line-height:1.7;position:relative;}
-  .wa-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(37,211,102,.7);font-weight:600;margin-bottom:8px;}
-  .wa-copy{position:absolute;top:10px;right:10px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:rgba(37,211,102,.9);padding:3px 9px;border-radius:6px;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;}
-  .wa-name-select{background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;margin-left:8px;cursor:pointer;}
+/* METAS */
+.meta-bar{background:rgba(11,31,58,.5);border-radius:8px;height:10px;overflow:hidden;margin:7px 0 3px;}
+.meta-fill{height:100%;border-radius:8px;transition:width .6s;}
+.meta-input{background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:8px;padding:7px 11px;color:var(--text);font-family:inherit;font-size:14px;outline:none;width:160px;}
+.meta-input:focus{border-color:var(--accent);}
 
-  /* MODAL */
-  .modal-ov{display:none;position:fixed;inset:0;background:rgba(6,15,30,.85);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-  .modal-ov.open{display:flex;}
-  .modal{background:var(--navy2);border:1px solid var(--border2);border-radius:16px;padding:26px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto;}
-  .modal-title{font-size:17px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
-  .modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;}
+/* RFV */
+.rfv-seg{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;}
+.rfv-campeao{background:rgba(201,168,76,.2);color:#E8C876;border:1px solid rgba(201,168,76,.4);}
+.rfv-leal{background:rgba(34,197,94,.15);color:#86EFAC;border:1px solid rgba(34,197,94,.3);}
+.rfv-potencial{background:rgba(59,130,196,.2);color:#93C5FD;border:1px solid rgba(59,130,196,.35);}
+.rfv-novo{background:rgba(168,85,247,.15);color:#D8B4FE;border:1px solid rgba(168,85,247,.3);}
+.rfv-risco{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.3);}
+.rfv-inativo{background:rgba(239,68,68,.12);color:#FCA5A5;border:1px solid rgba(239,68,68,.25);}
+.rfv-hibernando{background:rgba(107,139,173,.12);color:var(--text3);border:1px solid rgba(107,139,173,.2);}
 
-  /* META */
-  .meta-vendor-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
-  .meta-vendor-name{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-  .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
-  .meta-box{background:rgba(11,31,58,.5);border-radius:8px;padding:12px;text-align:center;}
-  .meta-box-label{font-size:10px;color:var(--text3);margin-bottom:4px;}
-  .meta-box-val{font-size:20px;font-weight:700;}
-  .meta-progress-bar{background:rgba(59,130,196,.15);border-radius:8px;height:10px;overflow:hidden;margin-top:8px;}
-  .meta-progress-fill{height:100%;border-radius:8px;transition:width .5s;}
+/* ANIV */
+.aniv-card{background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.2);border-radius:10px;padding:13px 15px;display:flex;align-items:center;gap:13px;margin-bottom:8px;}
+.aniv-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#EC4899,#A855F7);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;}
 
-  /* ANIVERSARIANTES */
-  .aniv-card{background:var(--card);border:1px solid rgba(236,72,153,.3);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;}
-  .aniv-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#EC4899,#A855F7);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-  .aniv-name{font-size:15px;font-weight:600;}
-  .aniv-info{font-size:12px;color:var(--text3);margin-top:2px;}
-  .aniv-phone{font-size:12px;color:var(--accent);margin-top:3px;}
+/* ORIGEM */
+.origem-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.origem-fill{height:8px;border-radius:4px;min-width:4px;transition:width .5s;}
 
-  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .loading-center{display:flex;justify-content:center;padding:40px;}
-
-  .notice{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.25);border-left:3px solid var(--gold);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;}
-  .notice strong{color:var(--gold2);}
-
-  ::-webkit-scrollbar{width:4px;height:4px;}
-  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+/* MISC */
+.notice{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.25);border-left:3px solid var(--gold);border-radius:8px;padding:11px 15px;font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;}
+.notice strong{color:var(--gold2);}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.lc{display:flex;justify-content:center;padding:36px;}
+.date-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.date-row input,.date-row select{background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:inherit;font-size:12px;outline:none;}
+.date-row input:focus,.date-row select:focus{border-color:var(--accent);}
+.date-row label{font-size:12px;color:var(--text3);}
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(6,15,30,.87);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-ov.open{display:flex;}
+.modal{background:var(--navy2);border:1px solid var(--border2);border-radius:16px;padding:24px;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;}
+.obs-box{background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.15);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.5;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 </style>
 </head>
 <body>
 
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="brand"><span>ORO</span> Óticas · CRM</div>
-  <div class="api-status">
-    <div class="status-dot" id="api-dot"></div>
-    <span id="api-label">Conectando...</span>
-    <span style="color:var(--border2)">|</span>
-    <span style="font-size:11px;color:var(--text3)" id="api-ts"></span>
+  <div class="topbar-right">
+    <div class="meta-top" id="meta-top" style="display:none">
+      <span style="font-size:11px;color:var(--text3)">Meta hoje:</span>
+      <span id="mt-hoje" style="font-weight:600;font-size:12px;color:var(--text)">—</span>
+      <div class="meta-top-bar"><div class="meta-top-fill" id="mt-fill" style="width:0%"></div></div>
+      <span id="mt-pct" style="font-size:11px;font-weight:700">0%</span>
+    </div>
+    <div class="api-status">
+      <div class="status-dot" id="api-dot"></div>
+      <span id="api-label">Conectando...</span>
+      <span style="color:var(--border2)">|</span>
+      <span style="font-size:11px;color:var(--text3)" id="api-ts"></span>
+    </div>
   </div>
 </div>
 
 <div class="body">
-  <div class="sidebar">
-    <div class="sid-label">Principal</div>
-    <div class="sid-item active" onclick="nav('dashboard',this)">
-      <div class="sid-dot" style="background:var(--accent)"></div>Dashboard
-    </div>
-    <div class="sid-item" onclick="nav('vendas',this)">
-      <div class="sid-dot" style="background:#86EFAC"></div>Vendas Recentes
-      <span class="sid-badge" id="badge-vendas">—</span>
-    </div>
-    <div class="sid-item" onclick="nav('ordens',this)">
-      <div class="sid-dot" style="background:#93C5FD"></div>Ordens de Serviço
-      <span class="sid-badge" id="badge-ordens">—</span>
-    </div>
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sid-label">Abertura</div>
+  <div class="sid-item active" onclick="nav('bomdia',this)"><div class="sid-dot" style="background:var(--gold)"></div>Bom Dia 🌅</div>
 
-    <div class="sid-label">Pós-Venda</div>
-    <div class="sid-item" onclick="nav('posvenda',this)">
-      <div class="sid-dot" style="background:#F472B6"></div>Fluxo Pós-Venda
-      <span class="sid-badge warn" id="badge-pv">—</span>
-    </div>
-    <div class="sid-item" onclick="nav('aniversariantes',this)">
-      <div class="sid-dot" style="background:#EC4899"></div>Aniversariantes
-      <span class="sid-badge pink" id="badge-aniv">—</span>
-    </div>
+  <div class="sid-label">Principal</div>
+  <div class="sid-item" onclick="nav('dashboard',this)"><div class="sid-dot" style="background:var(--accent)"></div>Dashboard</div>
+  <div class="sid-item" onclick="nav('vendas',this)"><div class="sid-dot" style="background:#86EFAC"></div>Vendas Recentes<span class="sid-badge sb-blue" id="badge-vendas">—</span></div>
+  <div class="sid-item" onclick="nav('ordens',this)"><div class="sid-dot" style="background:#93C5FD"></div>Ordens de Serviço<span class="sid-badge sb-blue" id="badge-ordens">—</span></div>
+  <div class="sid-item" onclick="nav('entregar',this)"><div class="sid-dot" style="background:#FCA5A5"></div>Prontos p/ Entregar<span class="sid-badge sb-red" id="badge-entregar">—</span></div>
+  <div class="sid-item" onclick="nav('ficha',this)"><div class="sid-dot" style="background:#D8B4FE"></div>Ficha do Cliente</div>
 
-    <div class="sid-label">Equipe</div>
-    <div class="sid-item" onclick="nav('metas',this)">
-      <div class="sid-dot" style="background:var(--gold)"></div>Metas da Equipe
-    </div>
+  <div class="sid-label">Pós-Venda</div>
+  <div class="sid-item" onclick="nav('posvenda',this)"><div class="sid-dot" style="background:#F472B6"></div>Fluxo Pós-Venda<span class="sid-badge sb-amber" id="badge-pv">—</span></div>
+  <div class="sid-item" onclick="nav('aniversariantes',this)"><div class="sid-dot" style="background:#EC4899"></div>Aniversariantes<span class="sid-badge sb-pink" id="badge-aniv">—</span></div>
+  <div class="sid-item" onclick="nav('receitas',this)"><div class="sid-dot" style="background:#FCD34D"></div>Receitas Vencendo<span class="sid-badge sb-amber" id="badge-receitas">—</span></div>
 
-    <div class="sid-label">Sistema</div>
-    <div class="sid-item" onclick="nav('apilog',this)">
-      <div class="sid-dot" style="background:#D8B4FE"></div>Log de Chamadas
-    </div>
+  <div class="sid-label">Equipe</div>
+  <div class="sid-item" onclick="nav('metas',this)"><div class="sid-dot" style="background:#86EFAC"></div>Metas de Vendas</div>
+  <div class="sid-item" onclick="nav('ranking',this)"><div class="sid-dot" style="background:#FCD34D"></div>Ranking do Dia</div>
+  <div class="sid-item" onclick="nav('rfv',this)"><div class="sid-dot" style="background:#E8C876"></div>Análise RFV</div>
+  <div class="sid-item" onclick="nav('origens',this)"><div class="sid-dot" style="background:#A78BFA"></div>Origem dos Clientes</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- BOM DIA -->
+<div class="page active" id="page-bomdia">
+  <div id="bomdia-content"><div class="lc"><div class="spinner"></div></div></div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="page-dashboard">
+  <div class="ph">
+    <div><div class="ph-title">Dashboard</div><div class="ph-sub">Dados em tempo real da SSótica</div></div>
+    <button class="btn-r" onclick="syncAll()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
+      Atualizar
+    </button>
   </div>
-
-  <div class="main">
-
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="ph">
-        <div><div class="ph-title">Dashboard</div><div class="ph-sub">Dados em tempo real da SSótica</div></div>
-        <button class="btn-refresh" onclick="syncAll()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="grid4" style="margin-bottom:16px">
-        <div class="stat blue"><div class="stat-label">Vendas (30 dias)</div><div class="stat-val" id="d-vendas">—</div><div class="stat-sub ok">via SSótica</div></div>
-        <div class="stat green"><div class="stat-label">Ordens de Serviço</div><div class="stat-val" id="d-os">—</div><div class="stat-sub ok">via SSótica</div></div>
-        <div class="stat amber"><div class="stat-label">Pós-Venda Ativo</div><div class="stat-val" id="d-pv">—</div><div class="stat-sub">clientes nas etapas</div></div>
-        <div class="stat purple"><div class="stat-label">Última Sync</div><div class="stat-val" style="font-size:16px" id="d-sync">—</div><div class="stat-sub ok">automático</div></div>
-      </div>
-      <div class="grid2">
-        <div class="card">
-          <div class="card-title"><div class="sid-dot" style="background:#86EFAC"></div>Últimas Vendas</div>
-          <div id="d-ultimas-vendas"><div class="loading-center"><div class="spinner"></div></div></div>
-        </div>
-        <div class="card">
-          <div class="card-title"><div class="sid-dot" style="background:#D8B4FE"></div>Log de Atividade</div>
-          <div id="d-log"></div>
-        </div>
-      </div>
+  <div id="dash-meta-bar" style="margin-bottom:14px"></div>
+  <div class="g4" style="margin-bottom:12px" id="dash-stats"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title"><div class="ai-dot" style="background:#86EFAC"></div>Últimas Vendas</div>
+      <div id="d-ultimas"><div class="lc"><div class="spinner"></div></div></div>
     </div>
-
-    <!-- VENDAS -->
-    <div class="page" id="page-vendas">
-      <div class="ph">
-        <div><div class="ph-title">Vendas Recentes</div><div class="ph-sub">Dados em tempo real — ordem decrescente por data</div></div>
-        <button class="btn-refresh" onclick="loadVendas()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:12px;color:var(--text3)">De:</label>
-          <input type="date" id="v-inicio" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <label style="font-size:12px;color:var(--text3)">Até:</label>
-          <input type="date" id="v-fim" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <button class="btn-refresh" onclick="loadVendas()">Buscar</button>
-        </div>
-      </div>
-      <div class="card">
-        <div id="vendas-content"><div class="loading-center"><div class="spinner"></div></div></div>
-      </div>
+    <div class="card">
+      <div class="card-title"><div class="ai-dot" style="background:#D8B4FE"></div>Log de Atividade</div>
+      <div id="d-log"></div>
     </div>
-
-    <!-- ORDENS -->
-    <div class="page" id="page-ordens">
-      <div class="ph">
-        <div><div class="ph-title">Ordens de Serviço</div><div class="ph-sub">Dados em tempo real</div></div>
-        <button class="btn-refresh" onclick="loadOrdens()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:12px;color:var(--text3)">De:</label>
-          <input type="date" id="os-inicio" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <label style="font-size:12px;color:var(--text3)">Até:</label>
-          <input type="date" id="os-fim" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
-          <button class="btn-refresh" onclick="loadOrdens()">Buscar</button>
-        </div>
-      </div>
-      <div class="card">
-        <div id="ordens-content"><div class="loading-center"><div class="spinner"></div></div></div>
-      </div>
-    </div>
-
-    <!-- PÓS-VENDA -->
-    <div class="page" id="page-posvenda">
-      <div class="ph">
-        <div><div class="ph-title">Fluxo Pós-Venda</div><div class="ph-sub">Clientes distribuídos por etapa — clique em Contatar para marcar como concluído</div></div>
-        <button class="btn-refresh" onclick="loadPosvenda()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="pv-pipeline" id="pv-pipeline"></div>
-      <div id="pv-steps"></div>
-    </div>
-
-    <!-- ANIVERSARIANTES -->
-    <div class="page" id="page-aniversariantes">
-      <div class="ph">
-        <div><div class="ph-title">🎂 Aniversariantes</div><div class="ph-sub" id="aniv-subtitle">Clientes aniversariantes</div></div>
-        <button class="btn-refresh" onclick="loadAniversariantes()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn-refresh" onclick="setAnivFiltro('hoje')" id="aniv-btn-hoje" style="background:rgba(236,72,153,.2);border-color:rgba(236,72,153,.4);color:#F9A8D4">Hoje</button>
-        <button class="btn-refresh" onclick="setAnivFiltro('semana')" id="aniv-btn-semana">Esta Semana</button>
-        <button class="btn-refresh" onclick="setAnivFiltro('mes')" id="aniv-btn-mes">Este Mês</button>
-      </div>
-      <div id="aniv-content"><div class="loading-center"><div class="spinner"></div></div></div>
-    </div>
-
-    <!-- METAS -->
-    <div class="page" id="page-metas">
-      <div class="ph">
-        <div><div class="ph-title">🎯 Metas da Equipe</div><div class="ph-sub">Desempenho do mês atual</div></div>
-        <button class="btn-refresh" onclick="loadMetas()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
-          Atualizar
-        </button>
-      </div>
-      <div class="card" style="margin-bottom:16px">
-        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-          <div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Meta mensal da loja (R$)</div>
-            <input type="number" id="meta-valor" placeholder="ex: 80000" style="background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:180px;">
-          </div>
-          <button class="btn-refresh" onclick="salvarMeta()" style="margin-top:18px">Salvar e Calcular</button>
-        </div>
-      </div>
-      <div id="metas-content"><div class="loading-center"><div class="spinner"></div></div></div>
-    </div>
-
-    <!-- LOG -->
-    <div class="page" id="page-apilog">
-      <div class="ph"><div><div class="ph-title">Log de Chamadas</div><div class="ph-sub">Registro de todas as requisições</div></div></div>
-      <div class="card"><div id="apilog-content"></div></div>
-    </div>
-
   </div>
 </div>
+
+<!-- VENDAS -->
+<div class="page" id="page-vendas">
+  <div class="ph">
+    <div><div class="ph-title">Vendas Recentes</div><div class="ph-sub">Mais recentes primeiro</div></div>
+    <button class="btn-r" onclick="loadVendas()">Atualizar</button>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="date-row">
+      <label>De:</label><input type="date" id="v-ini">
+      <label>Até:</label><input type="date" id="v-fim">
+      <button class="btn-r" onclick="loadVendas()">Buscar</button>
+    </div>
+  </div>
+  <div class="card"><div id="vendas-content"><div class="lc"><div class="spinner"></div></div></div></div>
+</div>
+
+<!-- ORDENS -->
+<div class="page" id="page-ordens">
+  <div class="ph">
+    <div><div class="ph-title">Ordens de Serviço</div><div class="ph-sub">Mais recentes primeiro</div></div>
+    <button class="btn-r" onclick="loadOrdens()">Atualizar</button>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="date-row">
+      <label>De:</label><input type="date" id="os-ini">
+      <label>Até:</label><input type="date" id="os-fim">
+      <button class="btn-r" onclick="loadOrdens()">Buscar</button>
+    </div>
+  </div>
+  <div class="card"><div id="ordens-content"><div class="lc"><div class="spinner"></div></div></div></div>
+</div>
+
+<!-- PRONTOS P/ ENTREGAR -->
+<div class="page" id="page-entregar">
+  <div class="ph">
+    <div><div class="ph-title">Prontos para Entregar 📦</div><div class="ph-sub">OS com laboratório concluído mas cliente ainda não buscou</div></div>
+    <button class="btn-r" onclick="loadEntregar()">Atualizar</button>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="date-row">
+      <label>De:</label><input type="date" id="ent-ini">
+      <label>Até:</label><input type="date" id="ent-fim">
+      <button class="btn-r" onclick="loadEntregar()">Buscar</button>
+    </div>
+  </div>
+  <div class="card"><div id="entregar-content"><div class="lc"><div class="spinner"></div></div></div></div>
+</div>
+
+<!-- FICHA DO CLIENTE -->
+<div class="page" id="page-ficha">
+  <div class="ph"><div><div class="ph-title">Ficha do Cliente</div><div class="ph-sub">Busque por nome, CPF ou telefone</div></div></div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="text" id="ficha-busca" placeholder="Nome, CPF ou telefone..." style="flex:1;background:rgba(11,31,58,.8);border:1px solid var(--border2);border-radius:8px;padding:9px 13px;color:var(--text);font-family:inherit;font-size:14px;outline:none;" onkeydown="if(event.key==='Enter')buscaFicha()">
+      <button class="btn-r" onclick="buscaFicha()">Buscar</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Busca nos clientes das vendas dos últimos 400 dias</div>
+  </div>
+  <div id="ficha-content"></div>
+</div>
+
+<!-- PÓS-VENDA -->
+<div class="page" id="page-posvenda">
+  <div class="ph">
+    <div><div class="ph-title">Fluxo Pós-Venda</div><div class="ph-sub">Clientes por etapa — "Contatar" remove da lista</div></div>
+    <button class="btn-r" onclick="loadPosvenda()">Atualizar</button>
+  </div>
+  <div class="pv-pipe" id="pv-pipe"></div>
+  <div id="pv-steps"></div>
+</div>
+
+<!-- ANIVERSARIANTES -->
+<div class="page" id="page-aniversariantes">
+  <div class="ph">
+    <div><div class="ph-title">Aniversariantes 🎂</div><div class="ph-sub">Clientes que fazem aniversário hoje</div></div>
+    <button class="btn-r" onclick="loadAniversariantes()">Atualizar</button>
+  </div>
+  <div id="aniv-content"><div class="lc"><div class="spinner"></div></div></div>
+</div>
+
+<!-- RECEITAS VENCENDO -->
+<div class="page" id="page-receitas">
+  <div class="ph">
+    <div><div class="ph-title">Receitas Vencendo ⏳</div><div class="ph-sub">Clientes com receita prestes a vencer nos próximos 30 dias</div></div>
+    <button class="btn-r" onclick="loadReceitas()">Atualizar</button>
+  </div>
+  <div id="receitas-content"><div class="lc"><div class="spinner"></div></div></div>
+</div>
+
+<!-- METAS -->
+<div class="page" id="page-metas">
+  <div class="ph">
+    <div><div class="ph-title">Metas de Vendas</div><div class="ph-sub">Baseado em dias úteis reais — vendas puxadas da SSótica</div></div>
+    <button class="btn-r" onclick="loadMetas()">Atualizar</button>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-size:13px;color:var(--text3)">Meta mensal por vendedora (R$):</div>
+      <input class="meta-input" type="number" id="meta-valor" placeholder="Ex: 80000" onchange="saveMeta()">
+      <button class="btn-r" onclick="loadMetas()">Calcular</button>
+    </div>
+  </div>
+  <div id="metas-content"><div class="lc"><div class="spinner"></div></div></div>
+</div>
+
+<!-- RANKING -->
+<div class="page" id="page-ranking">
+  <div class="ph">
+    <div><div class="ph-title">Ranking do Dia 🏆</div><div class="ph-sub">Vendas de hoje por consultora</div></div>
+    <button class="btn-r" onclick="loadRanking()">Atualizar</button>
+  </div>
+  <div id="ranking-content"><div class="lc"><div class="spinner"></div></div></div>
+</div>
+
+<!-- RFV -->
+<div class="page" id="page-rfv">
+  <div class="ph">
+    <div><div class="ph-title">Análise RFV</div><div class="ph-sub">Recência · Frequência · Valor — o que fazer com cada segmento</div></div>
+    <button class="btn-r" onclick="loadRfv()">Atualizar</button>
+  </div>
+  <div id="rfv-resumo" style="margin-bottom:14px"></div>
+  <div class="card"><div id="rfv-content"><div class="lc"><div class="spinner"></div></div></div></div>
+</div>
+
+<!-- ORIGENS -->
+<div class="page" id="page-origens">
+  <div class="ph">
+    <div><div class="ph-title">Origem dos Clientes 📊</div><div class="ph-sub">De onde vêm seus clientes — e quais canais trazem maior valor</div></div>
+    <button class="btn-r" onclick="loadOrigens()">Atualizar</button>
+  </div>
+  <div id="origens-content"><div class="lc"><div class="spinner"></div></div></div>
+</div>
+
+</div><!-- main -->
+</div><!-- body -->
 
 <!-- MODAL WA -->
 <div class="modal-ov" id="modal-wa">
   <div class="modal">
-    <div class="modal-title">
-      <span id="modal-wa-title">WhatsApp</span>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div id="modal-wa-body"></div>
+    <div class="modal-title"><span id="mwa-title">WhatsApp</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="mwa-body"></div>
+  </div>
+</div>
+
+<!-- MODAL FICHA -->
+<div class="modal-ov" id="modal-ficha">
+  <div class="modal" style="width:560px">
+    <div class="modal-title"><span id="mf-title">Ficha</span><button class="modal-close" onclick="document.getElementById('modal-ficha').classList.remove('open')">✕</button></div>
+    <div id="mf-body"></div>
   </div>
 </div>
 
 <script>
-const BACKEND = window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'
-  ? 'http://localhost:3001' : 'https://oro-crm-backend.onrender.com';
+// ══════════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════════════════
+const BACKEND = location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  ? 'http://localhost:3001'
+  : 'https://oro-crm-backend.onrender.com';
 
-const today = new Date();
-function dAgo(n){ const d=new Date(today);d.setDate(d.getDate()-n);return d.toISOString().split('T')[0]; }
-function fmt(s){ if(!s)return'—';try{const[y,m,d]=(s.split('T')[0]).split('-');return`${d}/${m}/${y}`;}catch{return s;} }
-function brl(v){ if(!v&&v!==0)return'—';return'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
-function setDates(prefix,dias=30){ const i=document.getElementById(prefix+'-inicio'),f=document.getElementById(prefix+'-fim');if(i)i.value=dAgo(dias);if(f)f.value=dAgo(0); }
+// ══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+const now = new Date();
+function dAgo(n){const d=new Date(now);d.setDate(d.getDate()-n);return d.toISOString().split('T')[0];}
+function fmt(s){if(!s)return'—';try{const[y,m,d]=(s.split('T')[0]).split('-');return`${d}/${m}/${y}`;}catch{return s;}}
+function brl(v){if(!v&&v!==0)return'—';return'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function setDates(a,b,diasA=30,diasB=0){
+  const ia=document.getElementById(a),ib=document.getElementById(b);
+  if(ia)ia.value=dAgo(diasA);if(ib)ib.value=dAgo(diasB);
+}
+function duMes(ano,mes){let t=0;const dim=new Date(ano,mes+1,0).getDate();for(let d=1;d<=dim;d++){const dw=new Date(ano,mes,d).getDay();if(dw&&dw<6)t++;}return t;}
+function duAte(ano,mes,dia){let t=0;for(let d=1;d<=dia;d++){const dw=new Date(ano,mes,d).getDay();if(dw&&dw<6)t++;}return t;}
+function duFaltam(ano,mes,dia){const dim=new Date(ano,mes+1,0).getDate();let t=0;for(let d=dia+1;d<=dim;d++){const dw=new Date(ano,mes,d).getDay();if(dw&&dw<6)t++;}return t;}
 
-let LOGS=[], pvContacted={}, pvSortState={}, anivFiltro='hoje';
+let LOGS=[];
+let pvContacted={};
+let pvSortState={};
+let _vendas400=null; // cache
 
+// ══════════════════════════════════════════════════════════════════════════════
+// API
+// ══════════════════════════════════════════════════════════════════════════════
 async function api(path){
   const r=await fetch(BACKEND+path);
-  if(!r.ok)throw new Error('HTTP '+r.status);
+  if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
-function addLog(txt,ok=true){
-  const now=new Date().toLocaleTimeString('pt-BR');
-  LOGS.unshift({txt,ok,t:now});
-  if(LOGS.length>50)LOGS.pop();
-}
+function log(txt,ok=true){LOGS.unshift({txt,ok,t:new Date().toLocaleTimeString('pt-BR')});if(LOGS.length>60)LOGS.pop();}
 
-// ── STATUS ──
+// ══════════════════════════════════════════════════════════════════════════════
+// STATUS
+// ══════════════════════════════════════════════════════════════════════════════
 async function checkStatus(){
   const dot=document.getElementById('api-dot'),lb=document.getElementById('api-label');
   try{
     const r=await api('/api/status');
-    if(r.ok){dot.className='status-dot ok';lb.textContent='SSótica API · Conectado · Dados reais';}
-    else{dot.className='status-dot';lb.textContent='Backend OK · SSótica: verificando';}
+    dot.className=r.ok?'status-dot ok':'status-dot';
+    lb.textContent=r.ok?'SSótica · Conectado · Dados reais':'Backend OK · SSótica: '+(r.msg||'verificando');
     document.getElementById('api-ts').textContent=new Date().toLocaleTimeString('pt-BR');
-    addLog('GET /api/status → '+(r.ok?'conectado':'erro'),r.ok);
-  }catch(e){dot.className='status-dot err';lb.textContent='Backend offline';addLog('GET /api/status → ERRO',false);}
+    log('GET /api/status → '+(r.ok?'OK':r.msg),r.ok);
+  }catch(e){dot.className='status-dot err';lb.textContent='Backend offline';log('status ERRO: '+e.message,false);}
 }
 
-// ── DASHBOARD ──
-async function syncAll(){
-  await checkStatus();
-  loadDashboard();
-}
-async function loadDashboard(){
+// ══════════════════════════════════════════════════════════════════════════════
+// BOM DIA
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadBomDia(){
+  const el=document.getElementById('bomdia-content');
+  const hora=now.getHours();
+  const saudacao=hora<12?'Bom dia':(hora<18?'Boa tarde':'Boa noite');
+  const ds=['domingo','segunda','terça','quarta','quinta','sexta','sábado'][now.getDay()];
+  const dm=String(now.getDate()).padStart(2,'0'),mm=String(now.getMonth()+1).padStart(2,'0');
+
+  el.innerHTML=`<div style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">
+    ${hora<12?'☀️':hora<18?'🌤️':'🌙'} ${saudacao}!
+  </div>
+  <div style="font-size:13px;color:var(--text3);margin-bottom:20px">${ds}, ${dm}/${mm}</div>
+  <div class="g3" id="bd-cards"><div class="lc"><div class="spinner"></div></div></div>
+  <div class="g2" style="margin-top:14px" id="bd-bottom"></div>`;
+
   try{
-    const[vendas,ordens,pv]=await Promise.allSettled([
+    const[v30,os30,pv]=await Promise.allSettled([
       api('/api/vendas?inicio='+dAgo(30)+'&fim='+dAgo(0)),
       api('/api/ordens?inicio='+dAgo(30)+'&fim='+dAgo(0)),
       api('/api/pos-venda')
     ]);
-    if(vendas.status==='fulfilled'){
-      const arr=(Array.isArray(vendas.value)?vendas.value:(vendas.value.data||vendas.value.vendas||[]));
-      // Ordena decrescente por data+hora
-      arr.sort((a,b)=>{
-        const da=(a.data||'')+(a.hora||''), db=(b.data||'')+(b.hora||'');
-        return db.localeCompare(da);
+
+    // Prontos para entregar: OS entregue pelo lab mas cliente não buscou ainda
+    const hoje=dAgo(0);
+    const ontem=dAgo(1);
+    let prontos=0, atrasados=0;
+    if(os30.status==='fulfilled'){
+      const osArr=Array.isArray(os30.value)?os30.value:(os30.value.data||[]);
+      osArr.forEach(v=>{
+        (v.itens||[]).forEach(it=>{
+          const os=it.ordem_servico;
+          if(!os)return;
+          // "Entregue" pelo lab = OS com status E mas ainda não retirada pelo cliente
+          // Aqui usamos ordens com entrega preenchida (lab ok) - sem data de retirada separada
+          if(os.status==='E'&&os.entrega){
+            prontos++;
+            // Atraso: previsão já passou
+            if(os.previsao_entrega){
+              const prev=os.previsao_entrega.split(' ')[0].split('/').reverse().join('-');
+              if(prev<hoje)atrasados++;
+            }
+          }
+        });
       });
-      document.getElementById('d-vendas').textContent=arr.length;
-      document.getElementById('badge-vendas').textContent=arr.length;
-      addLog('GET /api/vendas → '+arr.length+' registros',true);
-      document.getElementById('d-ultimas-vendas').innerHTML=arr.length
-        ?arr.slice(0,6).map(v=>`<div class="act-item">
-            <div class="act-dot" style="background:var(--green)"></div>
-            <div style="flex:1">
-              <div class="act-text" style="color:var(--text);font-weight:500">${(v.cliente&&v.cliente.nome)||'—'}</div>
-              <div class="act-meta">${fmt(v.data)} ${v.hora||''} · ${brl(v.valor_liquido)} · <span style="color:var(--accent)">${(v.funcionario&&v.funcionario.nome)||'—'}</span></div>
-            </div>
-            <span style="font-size:10px;color:var(--text3)">#${v.numero||''}</span>
-          </div>`).join('')
-        :'<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Nenhuma venda no período</div>';
     }
-    if(ordens.status==='fulfilled'){
-      const arr=(Array.isArray(ordens.value)?ordens.value:(ordens.value.data||ordens.value.ordens||[]));
-      document.getElementById('d-os').textContent=arr.length;
-      document.getElementById('badge-ordens').textContent=arr.length;
-      addLog('GET /api/ordens → '+arr.length+' registros',true);
-    }
-    if(pv.status==='fulfilled'&&pv.value.etapas){
-      const total=pv.value.totalPosvenda||0;
-      document.getElementById('d-pv').textContent=total;
-      document.getElementById('badge-pv').textContent=total;
-      window._pvData=pv.value.etapas;
-      addLog('GET /api/pos-venda → '+total+' clientes',true);
-    }
-    document.getElementById('d-sync').textContent=new Date().toLocaleTimeString('pt-BR');
-    renderDashLog();
-  }catch(e){addLog('Erro dashboard: '+e.message,false);}
+
+    const vArr=v30.status==='fulfilled'?(Array.isArray(v30.value)?v30.value:(v30.value.data||[])):[];
+    const osArr=os30.status==='fulfilled'?(Array.isArray(os30.value)?os30.value:(os30.value.data||[])):[];
+    const pvTotal=pv.status==='fulfilled'?pv.value.totalPosvenda||0:0;
+
+    // Vendas ontem
+    const vendOntem=vArr.filter(v=>v.data===ontem);
+    const totalOntem=vendOntem.reduce((s,v)=>s+Number(v.valor_liquido||0),0);
+
+    // Meta info
+    const metaVal=parseFloat(localStorage.getItem('oro_meta')||'80000');
+    const anoM=now.getFullYear(),mesM=now.getMonth(),diaM=now.getDate();
+    const inicioMes=`${anoM}-${String(mesM+1).padStart(2,'0')}-01`;
+    const vendasMes=vArr.filter(v=>v.data>=inicioMes);
+    const totalMes=vendasMes.reduce((s,v)=>s+Number(v.valor_liquido||0),0);
+    const pctMes=Math.min(100,(totalMes/metaVal)*100);
+    const duFalt=duFaltam(anoM,mesM,diaM);
+    const faltaMeta=Math.max(0,metaVal-totalMes);
+    const precisaDia=duFalt>0?faltaMeta/duFalt:0;
+
+    document.getElementById('bd-cards').innerHTML=`
+      <div class="stat c-amber">
+        <div class="stat-lbl">📦 Prontos p/ Entregar</div>
+        <div class="stat-val">${prontos}</div>
+        <div class="stat-sub ${atrasados>0?'bad':'ok'}">${atrasados>0?atrasados+' com atraso':'Em dia'}</div>
+        <button onclick="nav('entregar',document.querySelector('[onclick*=entregar]'))" style="margin-top:8px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#FCD34D;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600">Ver lista →</button>
+      </div>
+      <div class="stat c-blue">
+        <div class="stat-lbl">📞 Pós-Venda Pendente</div>
+        <div class="stat-val">${pvTotal}</div>
+        <div class="stat-sub">clientes aguardando contato</div>
+        <button onclick="nav('posvenda',document.querySelector('[onclick*=posvenda]'))" style="margin-top:8px;background:rgba(59,130,196,.15);border:1px solid rgba(59,130,196,.3);color:#93C5FD;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600">Ligar agora →</button>
+      </div>
+      <div class="stat ${pctMes>=100?'c-green':pctMes>=70?'c-amber':'c-red'}">
+        <div class="stat-lbl">🎯 Meta do Mês</div>
+        <div class="stat-val">${pctMes.toFixed(0)}%</div>
+        <div class="stat-sub">${brl(totalMes)} de ${brl(metaVal)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">
+          ${faltaMeta<=0?'✓ Meta batida!':'Falta '+brl(faltaMeta)+' · '+brl(precisaDia)+'/dia útil'}
+        </div>
+      </div>`;
+
+    // Ontem + aniv hoje
+    const hoje_dt=now;
+    const mesH=String(hoje_dt.getMonth()+1).padStart(2,'0'),diaH=String(hoje_dt.getDate()).padStart(2,'0');
+    let anivHoje=[];
+    vArr.forEach(v=>{
+      if(v.cliente&&v.cliente.nascimento){
+        const p=v.cliente.nascimento.split('-');
+        if(p[1]===mesH&&p[2]===diaH)anivHoje.push(v.cliente.nome||'—');
+      }
+    });
+    document.getElementById('badge-aniv').textContent=anivHoje.length||'0';
+    document.getElementById('badge-pv').textContent=pvTotal;
+    document.getElementById('badge-vendas').textContent=vArr.length;
+    document.getElementById('badge-ordens').textContent=osArr.length;
+    document.getElementById('badge-entregar').textContent=prontos;
+
+    document.getElementById('bd-bottom').innerHTML=`
+      <div class="card">
+        <div class="card-title">💰 Resultado de Ontem (${fmt(ontem)})</div>
+        ${vendOntem.length?`
+          <div style="font-size:26px;font-weight:700;color:var(--green);margin-bottom:4px">${brl(totalOntem)}</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${vendOntem.length} vendas</div>
+          <div>${vendOntem.sort((a,b)=>b.valor_liquido-a.valor_liquido).slice(0,4).map(v=>`
+            <div class="ai">
+              <div class="ai-dot" style="background:var(--green)"></div>
+              <div style="flex:1"><div class="ai-text" style="color:var(--text);font-weight:500">${(v.cliente&&v.cliente.nome)||'—'}</div>
+              <div class="ai-meta">${brl(v.valor_liquido)} · ${(v.funcionario&&v.funcionario.nome)||'—'}</div></div>
+            </div>`).join('')}</div>`
+        :'<div style="color:var(--text3);font-size:13px;padding:8px 0">Sem vendas ontem</div>'}
+      </div>
+      <div class="card">
+        <div class="card-title">🎂 Aniversariantes Hoje</div>
+        ${anivHoje.length
+          ?anivHoje.slice(0,5).map(n=>`<div class="ai"><div class="ai-dot" style="background:var(--pink)"></div><div class="ai-text">${n}</div></div>`).join('')+(anivHoje.length>5?`<div style="font-size:11px;color:var(--text3);padding:6px 0">+${anivHoje.length-5} mais</div>`:'')
+          :'<div style="color:var(--text3);font-size:13px;padding:8px 0">Nenhum aniversariante hoje</div>'}
+        ${anivHoje.length?`<button onclick="nav('aniversariantes',document.querySelector('[onclick*=aniversariantes]'))" style="margin-top:8px;background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.3);color:#F9A8D4;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600">Ver todos →</button>`:''}
+      </div>`;
+
+    // Atualiza barra de meta no topbar
+    atualizaMetaTopbar(totalMes,metaVal);
+    log('Bom Dia carregado',true);
+  }catch(e){log('Bom Dia erro: '+e.message,false);}
 }
+
+function atualizaMetaTopbar(totalMes,metaVal){
+  const pct=Math.min(100,(totalMes/metaVal)*100);
+  document.getElementById('meta-top').style.display='flex';
+  document.getElementById('mt-hoje').textContent=brl(totalMes)+' / '+brl(metaVal);
+  document.getElementById('mt-fill').style.width=pct+'%';
+  document.getElementById('mt-fill').style.background=pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--accent)';
+  document.getElementById('mt-pct').textContent=pct.toFixed(0)+'%';
+  document.getElementById('mt-pct').style.color=pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--text3)';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SYNC ALL (dashboard)
+// ══════════════════════════════════════════════════════════════════════════════
+async function syncAll(){
+  await checkStatus();
+  // Dashboard básico
+  try{
+    const[v,o,pv]=await Promise.allSettled([
+      api('/api/vendas?inicio='+dAgo(30)+'&fim='+dAgo(0)),
+      api('/api/ordens?inicio='+dAgo(30)+'&fim='+dAgo(0)),
+      api('/api/pos-venda')
+    ]);
+    const vArr=v.status==='fulfilled'?(Array.isArray(v.value)?v.value:(v.value.data||[])):[];
+    const oArr=o.status==='fulfilled'?(Array.isArray(o.value)?o.value:(o.value.data||[])):[];
+    const pvTot=pv.status==='fulfilled'?pv.value.totalPosvenda||0:0;
+    vArr.sort((a,b)=>new Date(b.data+' '+(b.hora||'00'))-new Date(a.data+' '+(a.hora||'00')));
+
+    const metaVal=parseFloat(localStorage.getItem('oro_meta')||'80000');
+    const anoM=now.getFullYear(),mesM=now.getMonth();
+    const inicioMes=`${anoM}-${String(mesM+1).padStart(2,'0')}-01`;
+    const totalMes=vArr.filter(v=>v.data>=inicioMes).reduce((s,v)=>s+Number(v.valor_liquido||0),0);
+    const pct=Math.min(100,(totalMes/metaVal)*100);
+
+    document.getElementById('dash-stats').innerHTML=[
+      ['c-blue','Vendas (30d)',vArr.length,'via SSótica','ok'],
+      ['c-green','Ordens',oArr.length,'via SSótica','ok'],
+      ['c-amber','Pós-Venda',pvTot,'pendentes','warn'],
+      [pct>=100?'c-green':pct>=70?'c-amber':'c-red','Meta do Mês',pct.toFixed(0)+'%',brl(totalMes),pct>=100?'ok':'warn'],
+    ].map(([c,l,v,s,sc])=>`<div class="stat ${c}"><div class="stat-lbl">${l}</div><div class="stat-val">${v}</div><div class="stat-sub ${sc}">${s}</div></div>`).join('');
+
+    document.getElementById('dash-meta-bar').innerHTML=`
+      <div class="card" style="padding:12px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--text3)">Meta do mês: <strong style="color:var(--text)">${brl(totalMes)}</strong> de ${brl(metaVal)}</span>
+          <span style="font-size:13px;font-weight:700;color:${pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)'}">${pct.toFixed(1)}%</span>
+        </div>
+        <div class="meta-bar"><div class="meta-fill" style="width:${pct}%;background:${pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--accent)'}"></div></div>
+      </div>`;
+
+    document.getElementById('d-ultimas').innerHTML=vArr.slice(0,6).map(v=>`
+      <div class="ai">
+        <div class="ai-dot" style="background:var(--green)"></div>
+        <div style="flex:1">
+          <div class="ai-text" style="color:var(--text);font-weight:500">${(v.cliente&&v.cliente.nome)||'—'}</div>
+          <div class="ai-meta">${fmt(v.data)} ${v.hora||''} · ${brl(v.valor_liquido)} · ${(v.funcionario&&v.funcionario.nome)||'—'}</div>
+        </div>
+        <span style="font-size:10px;color:var(--text3)">#${v.numero}</span>
+      </div>`).join('');
+
+    atualizaMetaTopbar(totalMes,metaVal);
+    renderDashLog();
+    log('Dashboard atualizado',true);
+  }catch(e){log('Dashboard erro: '+e.message,false);}
+}
+
 function renderDashLog(){
   document.getElementById('d-log').innerHTML=LOGS.slice(0,6).map(l=>`
-    <div class="act-item">
-      <div class="act-dot" style="background:${l.ok?'var(--green)':'var(--red)'}"></div>
-      <div style="flex:1"><div class="act-text">${l.txt}</div><div class="act-meta">${l.t}</div></div>
+    <div class="ai">
+      <div class="ai-dot" style="background:${l.ok?'var(--green)':'var(--red)'}"></div>
+      <div style="flex:1"><div class="ai-text">${l.txt}</div><div class="ai-meta">${l.t}</div></div>
     </div>`).join('');
 }
 
-// ── VENDAS ──
+// ══════════════════════════════════════════════════════════════════════════════
+// VENDAS
+// ══════════════════════════════════════════════════════════════════════════════
 async function loadVendas(){
-  const ini=document.getElementById('v-inicio').value||dAgo(30);
+  const ini=document.getElementById('v-ini').value||dAgo(30);
   const fim=document.getElementById('v-fim').value||dAgo(0);
-  document.getElementById('vendas-content').innerHTML='<div class="loading-center"><div class="spinner"></div></div>';
+  document.getElementById('vendas-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   try{
     const r=await api('/api/vendas?inicio='+ini+'&fim='+fim);
     let arr=Array.isArray(r)?r:(r.data||r.vendas||[]);
-    // Ordena decrescente por data+hora
-    arr.sort((a,b)=>{
-      const da=(a.data||'')+(a.hora||''), db=(b.data||'')+(b.hora||'');
-      return db.localeCompare(da);
-    });
-    addLog('GET /api/vendas → '+arr.length+' registros',true);
+    arr.sort((a,b)=>new Date(b.data+' '+(b.hora||'00'))-new Date(a.data+' '+(a.hora||'00')));
+    log('vendas → '+arr.length,true);
     document.getElementById('badge-vendas').textContent=arr.length;
     if(!arr.length){document.getElementById('vendas-content').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Nenhuma venda no período</div>';return;}
-    const total=arr.reduce((s,v)=>s+Number(v.valor_liquido||0),0);
-    document.getElementById('vendas-content').innerHTML=`
-      <div style="margin-bottom:12px;padding:10px 14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:13px;color:#86EFAC">
-        Total: <strong>${brl(total)}</strong> · ${arr.length} vendas
-      </div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>Nº</th><th>Data/Hora</th><th>Cliente</th><th>Valor</th><th>Forma Pgto</th><th>Vendedor</th><th>Status</th></tr></thead>
-        <tbody>${arr.map(v=>`<tr>
-          <td style="font-size:11px;color:var(--accent)">#${v.numero||'—'}</td>
-          <td style="font-size:12px">${fmt(v.data)} <span style="color:var(--text3)">${(v.hora||'').substring(0,5)}</span></td>
-          <td style="color:var(--text);font-weight:500">${(v.cliente&&v.cliente.nome)||'—'}</td>
-          <td style="color:var(--green);font-weight:600">${brl(v.valor_liquido)}</td>
-          <td style="font-size:11px">${(v.formas_pagamento&&v.formas_pagamento[0]&&v.formas_pagamento[0].forma_pagamento)||'—'}</td>
-          <td style="font-size:12px">${(v.funcionario&&v.funcionario.nome)||'—'}</td>
-          <td><span class="badge ${v.status==='CANCELADA'?'b-red':'b-green'}">${v.status||'ATIVA'}</span></td>
-        </tr>`).join('')}</tbody>
-      </table></div>`;
-  }catch(e){addLog('Erro vendas: '+e.message,false);document.getElementById('vendas-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+    document.getElementById('vendas-content').innerHTML=`<div class="tw"><table>
+      <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Hora</th><th>Valor</th><th>Pagamento</th><th>Vendedora</th><th>Status</th></tr></thead>
+      <tbody>${arr.map(v=>`<tr>
+        <td style="font-size:11px;color:var(--accent)">#${v.numero||'—'}</td>
+        <td style="color:var(--text);font-weight:500">${(v.cliente&&v.cliente.nome)||'—'}</td>
+        <td>${fmt(v.data)}</td><td style="font-size:11px">${v.hora||'—'}</td>
+        <td style="color:var(--green);font-weight:600">${brl(v.valor_liquido)}</td>
+        <td style="font-size:11px">${(v.formas_pagamento&&v.formas_pagamento[0]&&v.formas_pagamento[0].forma_pagamento)||'—'}</td>
+        <td style="font-size:12px">${(v.funcionario&&v.funcionario.nome)||'—'}</td>
+        <td><span class="b ${v.status==='CANCELADA'?'b-red':'b-green'}">${v.status||'ATIVA'}</span></td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }catch(e){log('vendas erro: '+e.message,false);document.getElementById('vendas-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
 }
 
-// ── ORDENS ──
+// ══════════════════════════════════════════════════════════════════════════════
+// ORDENS
+// ══════════════════════════════════════════════════════════════════════════════
 async function loadOrdens(){
-  const ini=document.getElementById('os-inicio').value||dAgo(30);
+  const ini=document.getElementById('os-ini').value||dAgo(30);
   const fim=document.getElementById('os-fim').value||dAgo(0);
-  document.getElementById('ordens-content').innerHTML='<div class="loading-center"><div class="spinner"></div></div>';
+  document.getElementById('ordens-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   try{
     const r=await api('/api/ordens?inicio='+ini+'&fim='+fim);
     let arr=Array.isArray(r)?r:(r.data||r.ordens||[]);
-    arr.sort((a,b)=>((b.data||'')+(b.hora||'')).localeCompare((a.data||'')+(a.hora||'')));
-    addLog('GET /api/ordens → '+arr.length+' registros',true);
+    arr.sort((a,b)=>new Date(b.data+' '+(b.hora||'00'))-new Date(a.data+' '+(a.hora||'00')));
+    log('ordens → '+arr.length,true);
     document.getElementById('badge-ordens').textContent=arr.length;
     if(!arr.length){document.getElementById('ordens-content').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Nenhuma OS no período</div>';return;}
-    document.getElementById('ordens-content').innerHTML=`<div class="tbl-wrap"><table>
-      <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Produtos</th><th>Valor</th><th>Vendedor</th><th>Status OS</th></tr></thead>
+    document.getElementById('ordens-content').innerHTML=`<div class="tw"><table>
+      <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Produto</th><th>Valor</th><th>Vendedora</th><th>Status OS</th></tr></thead>
       <tbody>${arr.map(v=>{
-        const itens=v.itens||[];
-        const prods=itens.slice(0,2).map(i=>(i.produto&&i.produto.descricao)||'—').join(', ')+(itens.length>2?` +${itens.length-2}`:'');
-        const osStatus=itens[0]&&itens[0].ordem_servico?itens[0].ordem_servico.status_detalhado:'—';
+        const it=v.itens||[];
+        const pr=it.slice(0,2).map(i=>(i.produto&&i.produto.descricao)||'—').join(', ')+(it.length>2?` +${it.length-2}`:'');
+        const os=it[0]&&it[0].ordem_servico?it[0].ordem_servico.status_detalhado:'—';
         return`<tr>
           <td style="font-size:11px;color:var(--accent)">#${v.numero||'—'}</td>
           <td style="color:var(--text);font-weight:500">${(v.cliente&&v.cliente.nome)||'—'}</td>
           <td>${fmt(v.data)}</td>
-          <td style="font-size:11px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${prods}</td>
+          <td style="font-size:11px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pr}</td>
           <td style="color:var(--green);font-weight:600">${brl(v.valor_liquido)}</td>
           <td style="font-size:12px">${(v.funcionario&&v.funcionario.nome)||'—'}</td>
-          <td><span class="badge ${osStatus==='Entregue'?'b-green':osStatus==='Não Entregue'?'b-amber':'b-blue'}">${osStatus}</span></td>
+          <td><span class="b ${os==='Entregue'?'b-green':os==='Não Entregue'?'b-amber':'b-blue'}">${os}</span></td>
         </tr>`;
-      }).join('')}</tbody>
-    </table></div>`;
-  }catch(e){addLog('Erro ordens: '+e.message,false);document.getElementById('ordens-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+      }).join('')}</tbody></table></div>`;
+  }catch(e){log('ordens erro: '+e.message,false);document.getElementById('ordens-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
 }
 
-// ── PÓS-VENDA ──
+// ══════════════════════════════════════════════════════════════════════════════
+// PRONTOS PARA ENTREGAR
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadEntregar(){
+  const ini=document.getElementById('ent-ini').value||dAgo(90);
+  const fim=document.getElementById('ent-fim').value||dAgo(0);
+  document.getElementById('entregar-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  try{
+    const r=await api('/api/ordens?inicio='+ini+'&fim='+fim);
+    let arr=Array.isArray(r)?r:(r.data||r.ordens||[]);
+    // Filtra OS com status Entregue pelo lab (tem data de entrega do lab = status 'E')
+    const prontos=[];
+    arr.forEach(v=>{
+      (v.itens||[]).forEach(it=>{
+        const os=it.ordem_servico;
+        if(!os||os.status!=='E'||!os.entrega)return;
+        // Verifica se já foi adicionado (mesmo número OS)
+        if(!prontos.find(p=>p.os_num===os.numero)){
+          const hoje=dAgo(0);
+          const diasEsp=os.entrega?Math.floor((new Date()-new Date(os.entrega.split(' ')[0].split('/').reverse().join('-')))/86400000):0;
+          prontos.push({
+            os_num:os.numero, venda_num:v.numero,
+            cliente:(v.cliente&&v.cliente.nome)||'—',
+            telefone:(v.cliente&&v.cliente.telefones&&v.cliente.telefones[0]&&v.cliente.telefones[0].numero)||'',
+            produto:(it.produto&&it.produto.descricao)||'—',
+            entregaLab:os.entrega,
+            previsao:os.previsao_entrega,
+            vendedora:(v.funcionario&&v.funcionario.nome)||'—',
+            diasEsperando:diasEsp,
+            atrasado:diasEsp>3
+          });
+        }
+      });
+    });
+    prontos.sort((a,b)=>b.diasEsperando-a.diasEsperando);
+    document.getElementById('badge-entregar').textContent=prontos.length;
+    log('prontos entregar → '+prontos.length,true);
+
+    if(!prontos.length){
+      document.getElementById('entregar-content').innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">✓ Nenhuma OS aguardando retirada</div>';
+      return;
+    }
+
+    const atrasados=prontos.filter(p=>p.atrasado).length;
+    document.getElementById('entregar-content').innerHTML=`
+      ${atrasados>0?`<div class="notice" style="border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.06)">
+        ⚠️ <strong style="color:#FCA5A5">${atrasados} OS</strong> aguardam retirada há mais de 3 dias — ligar para o cliente é prioridade!
+      </div>`:''}
+      <div class="tw"><table>
+        <thead><tr><th>Nº OS</th><th>Cliente</th><th>Telefone</th><th>Produto</th><th>Pronto há</th><th>Vendedora</th><th>Ação</th></tr></thead>
+        <tbody>${prontos.map(p=>`<tr>
+          <td style="font-size:11px;color:var(--accent)">#${p.os_num}</td>
+          <td style="color:var(--text);font-weight:500">${p.cliente}</td>
+          <td style="font-size:12px">${p.telefone||'—'}</td>
+          <td style="font-size:11px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.produto}</td>
+          <td><span style="font-weight:600;color:${p.atrasado?'var(--red)':p.diasEsperando>1?'var(--amber)':'var(--green)'}">${p.diasEsperando}d</span></td>
+          <td style="font-size:12px">${p.vendedora}</td>
+          <td>
+            ${p.telefone?`<a href="https://wa.me/55${p.telefone.replace(/\D/g,'')}&text=${encodeURIComponent('Olá, '+p.cliente.split(' ')[0]+'! 😊 Aqui é da *ORO Óticas*. Seu(sua) '+p.produto+' está pronto para retirada! Pode vir buscar quando quiser. Te esperamos com carinho! 🤍')}" target="_blank"><button class="btn-sm btn-wa">💬 Avisar</button></a>`:'—'}
+          </td>
+        </tr>`).join('')}</tbody></table></div>`;
+  }catch(e){log('entregar erro: '+e.message,false);document.getElementById('entregar-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FICHA DO CLIENTE
+// ══════════════════════════════════════════════════════════════════════════════
+async function getVendas400(){
+  if(_vendas400)return _vendas400;
+  let all=[];
+  for(let offset=0;offset<400;offset+=30){
+    const fim=new Date(now);fim.setDate(fim.getDate()-offset);
+    const ini=new Date(now);ini.setDate(ini.getDate()-(offset+30));
+    try{
+      const r=await api('/api/vendas?inicio='+ini.toISOString().split('T')[0]+'&fim='+fim.toISOString().split('T')[0]);
+      const l=Array.isArray(r)?r:(r.data||r.vendas||[]);
+      if(l.length)all=all.concat(l);
+    }catch(e){}
+  }
+  _vendas400=all;
+  return all;
+}
+
+async function buscaFicha(){
+  const q=(document.getElementById('ficha-busca').value||'').trim().toLowerCase();
+  if(!q){document.getElementById('ficha-content').innerHTML='<div style="color:var(--text3);font-size:13px;padding:16px">Digite algo para buscar</div>';return;}
+  document.getElementById('ficha-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  try{
+    const all=await getVendas400();
+    // Filtra por nome, CPF ou telefone
+    const vCliente={};
+    all.forEach(v=>{
+      if(!v.cliente)return;
+      const c=v.cliente;
+      const nome=(c.nome||'').toLowerCase();
+      const cpf=(c.cpf_cnpj||'').replace(/\D/g,'');
+      const tel=(c.telefones&&c.telefones[0]&&c.telefones[0].numero||'').replace(/\D/g,'');
+      const qd=q.replace(/\D/g,'');
+      if(nome.includes(q)||(qd&&cpf.includes(qd))||(qd&&tel.includes(qd))){
+        if(!vCliente[c.id])vCliente[c.id]={cliente:c,vendas:[]};
+        vCliente[c.id].vendas.push(v);
+      }
+    });
+    const results=Object.values(vCliente).sort((a,b)=>a.cliente.nome.localeCompare(b.cliente.nome,'pt'));
+    if(!results.length){document.getElementById('ficha-content').innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Nenhum cliente encontrado para "'+q+'"</div>';return;}
+    document.getElementById('ficha-content').innerHTML=results.map(r=>{
+      const c=r.cliente;
+      const vendas=r.vendas.sort((a,b)=>new Date(b.data)-new Date(a.data));
+      const totalGasto=vendas.reduce((s,v)=>s+Number(v.valor_liquido||0),0);
+      const ultimaCompra=vendas[0]?.data;
+      const diasUlt=ultimaCompra?Math.floor((now-new Date(ultimaCompra))/86400000):999;
+      const tel=(c.telefones&&c.telefones[0]&&c.telefones[0].numero)||'';
+      return`<div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--text)">${c.nome||'—'}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px">CPF: ${c.cpf_cnpj||'—'} · ${tel||'Sem telefone'}</div>
+            ${c.nascimento?`<div style="font-size:12px;color:var(--text3)">Nascimento: ${fmt(c.nascimento)} · Cidade: ${(c.endereco&&c.endereco.cidade)||'—'}</div>`:''}
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            ${tel?`<a href="https://wa.me/55${tel.replace(/\D/g,'')}" target="_blank"><button class="btn-sm btn-wa">💬 WhatsApp</button></a>`:''}
+            <button class="btn-sm btn-out" onclick="abreHistorico(${JSON.stringify(r).replace(/"/g,'&quot;')})">Ver Histórico</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 14px;flex:1;min-width:110px">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Total gasto</div>
+            <div style="font-size:17px;font-weight:700;color:var(--green)">${brl(totalGasto)}</div>
+          </div>
+          <div style="background:rgba(59,130,196,.08);border:1px solid rgba(59,130,196,.2);border-radius:8px;padding:10px 14px;flex:1;min-width:110px">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Nº de compras</div>
+            <div style="font-size:17px;font-weight:700;color:var(--accent)">${vendas.length}</div>
+          </div>
+          <div style="background:rgba(${diasUlt<=30?'34,197,94':diasUlt<=90?'245,158,11':'239,68,68'},.08);border:1px solid rgba(${diasUlt<=30?'34,197,94':diasUlt<=90?'245,158,11':'239,68,68'},.2);border-radius:8px;padding:10px 14px;flex:1;min-width:110px">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Última compra</div>
+            <div style="font-size:15px;font-weight:700;color:${diasUlt<=30?'var(--green)':diasUlt<=90?'var(--amber)':'var(--red)'}">${fmt(ultimaCompra)}</div>
+            <div style="font-size:10px;color:var(--text3)">${diasUlt}d atrás</div>
+          </div>
+          <div style="background:rgba(11,31,58,.5);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:140px">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Ticket médio</div>
+            <div style="font-size:17px;font-weight:700;color:var(--text)">${brl(totalGasto/vendas.length)}</div>
+          </div>
+        </div>
+        ${c.observacao?`<div class="obs-box" style="margin-top:10px">📝 ${c.observacao}</div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){log('ficha erro: '+e.message,false);document.getElementById('ficha-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+}
+
+function abreHistorico(r){
+  const c=r.cliente;
+  const vendas=r.vendas.sort((a,b)=>new Date(b.data)-new Date(a.data));
+  document.getElementById('mf-title').textContent='Histórico — '+c.nome;
+  document.getElementById('mf-body').innerHTML=`
+    <div class="tw"><table>
+      <thead><tr><th>Data</th><th>Nº</th><th>Produtos</th><th>Valor</th><th>Vendedora</th><th>Forma Pgto</th></tr></thead>
+      <tbody>${vendas.map(v=>{
+        const prod=(v.itens||[]).map(i=>(i.produto&&i.produto.descricao)||'—').join(', ');
+        return`<tr>
+          <td>${fmt(v.data)}</td>
+          <td style="font-size:11px;color:var(--accent)">#${v.numero}</td>
+          <td style="font-size:11px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${prod}</td>
+          <td style="color:var(--green);font-weight:600">${brl(v.valor_liquido)}</td>
+          <td style="font-size:12px">${(v.funcionario&&v.funcionario.nome)||'—'}</td>
+          <td style="font-size:11px">${(v.formas_pagamento&&v.formas_pagamento[0]&&v.formas_pagamento[0].forma_pagamento)||'—'}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  document.getElementById('modal-ficha').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PÓS-VENDA
+// ══════════════════════════════════════════════════════════════════════════════
 const PV_CFG=[
-  {id:'dias15',label:'15 Dias',sub:'Adaptação',icon:'😊',cor:'#3B82C4',dias:'10–20',
-   wa:(n,p)=>`Olá, ${n}! 😊\n\nAqui é da *ORO Óticas* de Araruama.\n\nJá fazem 15 dias desde que você levou o(a) *${p}*. Como está sendo a adaptação? Está enxergando bem?\n\nQualquer dúvida, pode chamar! Estamos aqui para te ajudar 🤍`},
-  {id:'mes1',label:'1 Mês',sub:'Satisfação',icon:'✅',cor:'#22C55E',dias:'25–40',
-   wa:(n,p)=>`Oi, ${n}! 🌟\n\nDa *ORO Óticas* de Araruama!\n\nJá faz 1 mês que você levou o(a) *${p}*. Esperamos que esteja adorando! 😍\n\nLembre-se: você tem direito a *ajuste e limpeza grátis* aqui na loja quando quiser. É só passar! 😊`},
-  {id:'dias75',label:'75 Dias',sub:'Ajuste grátis',icon:'🔧',cor:'#F59E0B',dias:'68–85',
-   wa:(n,p)=>`Olá, ${n}! 👓\n\nDa *ORO Óticas*!\n\nJá passaram 75 dias desde a sua compra de *${p}*. Chegou o momento perfeito para um *ajuste e limpeza profissional gratuita* aqui na loja!\n\nIsso garante que seus óculos continuem perfeitos e confortáveis. 🔧✨\n\nQuando você tem um tempinho esta semana?`},
-  {id:'meses6',label:'6 Meses',sub:'Manutenção',icon:'🧼',cor:'#06B6D4',dias:'165–195',
-   wa:(n,p)=>`Oi, ${n}! 💙\n\nDa *ORO Óticas* de Araruama.\n\nJá fazem *6 meses* desde que você comprou o(a) *${p}*! Parabéns pelo cuidado! 👏\n\nQue tal passar para a nossa *limpeza semestral gratuita*? Seus óculos agradecem! Óculos bem cuidados duram muito mais e você enxerga melhor.\n\nWhen podemos te esperar? 😊`},
-  {id:'meses8',label:'8 Meses',sub:'Verificação',icon:'✨',cor:'#8B5CF6',dias:'225–255',
-   wa:(n,p)=>`Olá, ${n}! ✨\n\nDa *ORO Óticas*!\n\nFazem 8 meses que você está com o(a) *${p}*. Esperamos que continue adorando!\n\nPassando para lembrar que seu *ajuste e limpeza gratuita* está disponível. Além disso, temos lindas novidades na loja que com certeza vão te interessar! 😉\n\nVenha nos visitar!`},
-  {id:'meses10',label:'10 Meses',sub:'Pré-vencimento',icon:'🔩',cor:'#EC4899',dias:'285–315',
-   wa:(n,p)=>`Oi, ${n}! 💕\n\nDa *ORO Óticas* de Araruama!\n\nJá fazem *10 meses* com o(a) *${p}*!\n\nSua receita de óculos vence em breve (validade de 1 ano). Podemos te ajudar a agendar um exame de vista para que você continue enxergando com a correção ideal. 👓\n\nVenha também para o *ajuste e limpeza grátis*! 🤍`},
-  {id:'meses11',label:'11 Meses',sub:'Receita vence',icon:'⚠️',cor:'#F97316',dias:'315–345',
-   wa:(n,p)=>`Oi, ${n}! 👋\n\nDa *ORO Óticas*!\n\n⚠️ *Atenção:* Sua receita de óculos vai vencer no próximo mês!\n\nVocê usou o(a) *${p}* há 11 meses. Para continuar enxergando com a correção certa, é importante renovar o exame de vista.\n\nPodemos te ajudar a agendar ou indicar um especialista. Quer que a gente cuide disso? 😊`},
-  {id:'meses12',label:'12 Meses',sub:'Renovar receita',icon:'📋',cor:'#EF4444',dias:'345–400',
-   wa:(n,p)=>`Olá, ${n}! 😊\n\nDa *ORO Óticas* de Araruama!\n\n📋 Sua *receita de óculos completou 1 ano* e precisa ser renovada!\n\nVocê comprou o(a) *${p}* há um ano. Que tal agendar seu *exame de vista* e já aproveitar para ver as nossas novidades? Temos lentes e armações incríveis esperando por você! 🤩\n\nVamos agendar?`},
+  {id:'dias15',label:'15 Dias',sub:'Verificar adaptação',icon:'😊',cor:'#3B82C4',
+   wa:(n,p)=>`Olá, ${n}! 😊 Aqui é da *ORO Óticas*, sua ótica de confiança em Araruama.\n\nJá faz 15 dias desde que você levou ${p}! Passando para saber como está sendo a adaptação. Está tudo bem? Tem algum desconforto?\n\nEstamos sempre aqui para ajudar! 🤍`},
+  {id:'mes1',label:'1 Mês',sub:'Satisfação + ajuste grátis',icon:'✅',cor:'#22C55E',
+   wa:(n,p)=>`Olá, ${n}! 🌟 Da *ORO Óticas*.\n\nJá faz 1 mês desde a sua compra de ${p}! Esperamos que esteja amando seus óculos. 😄\n\nLembre-se: temos *ajuste e limpeza gratuitos* aqui na loja! Pode vir quando quiser. 🤍`},
+  {id:'dias75',label:'75 Dias',sub:'Ajuste e limpeza grátis',icon:'🔧',cor:'#F59E0B',
+   wa:(n,p)=>`Olá, ${n}! 👓 Da *ORO Óticas*!\n\nJá se passaram 75 dias desde que você comprou ${p}. Chegou a hora do *ajuste e limpeza profissional gratuitos*!\n\nQuando você pode passar? Te esperamos com muito carinho! 😊`},
+  {id:'meses6',label:'6 Meses',sub:'Manutenção semestral',icon:'🧼',cor:'#06B6D4',
+   wa:(n,p)=>`Oi, ${n}! 💙 Da *ORO Óticas*.\n\n6 meses desde que você comprou ${p}! Que tal uma *limpeza profissional e ajuste completo* — tudo grátis?\n\nÓculos bem cuidados duram muito mais. Te esperamos! 🤍`},
+  {id:'meses8',label:'8 Meses',sub:'Revisão geral',icon:'✨',cor:'#8B5CF6',
+   wa:(n,p)=>`Olá, ${n}! ✨ Da *ORO Óticas*.\n\n8 meses desde que você levou ${p}! Mais um *ajuste e limpeza grátis* — e temos novidades lindas para te mostrar! 😉\n\nQuando você pode vir?`},
+  {id:'meses10',label:'10 Meses',sub:'Antes do vencimento',icon:'🔩',cor:'#EC4899',
+   wa:(n,p)=>`Oi, ${n}! 💕 Da *ORO Óticas*.\n\n10 meses desde que você comprou ${p}! *Ajuste e limpeza grátis* esperando por você. 🤍\n\n⚠️ Sua *receita vai vencer em breve*. Posso te ajudar a agendar um exame de vista! 👓`},
+  {id:'meses11',label:'11 Meses',sub:'Receita vencendo',icon:'⚠️',cor:'#F97316',
+   wa:(n,p)=>`Oi, ${n}! 👋 Da *ORO Óticas*.\n\n⚠️ Sua *receita vence no próximo mês!* Para continuar enxergando bem, é hora de renovar.\n\nPosso te ajudar a agendar ou indicar um oftalmologista. É só falar! 😊`},
+  {id:'meses12',label:'12 Meses',sub:'Receita vencida',icon:'📋',cor:'#EF4444',
+   wa:(n,p)=>`Olá, ${n}! 😊 Da *ORO Óticas*.\n\n📋 Sua *receita completou 1 ano* e precisa ser renovada! Receita vencida pode significar que seus óculos não estão mais adequados.\n\nQue tal agendar um *exame de vista*? A gente te ajuda com tudo! 💙`},
 ];
 
 let pvOpen={};
 
 async function loadPosvenda(){
-  document.getElementById('pv-pipeline').innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px">Carregando...</div>';
-  document.getElementById('pv-steps').innerHTML='<div class="loading-center"><div class="spinner"></div></div>';
+  document.getElementById('pv-pipe').innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px">Carregando...</div>';
+  document.getElementById('pv-steps').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   try{
     const r=await api('/api/pos-venda');
     window._pvData=r.etapas||{};
-    addLog('GET /api/pos-venda → '+r.totalPosvenda+' clientes',true);
+    log('pos-venda → '+r.totalPosvenda+' clientes',true);
     document.getElementById('badge-pv').textContent=r.totalPosvenda||0;
-    document.getElementById('d-pv').textContent=r.totalPosvenda||0;
-    renderPvPipeline();
-    renderPvSteps();
-  }catch(e){addLog('Erro pos-venda: '+e.message,false);document.getElementById('pv-steps').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+    renderPvPipe();renderPvSteps();
+  }catch(e){log('pv erro: '+e.message,false);document.getElementById('pv-steps').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
 }
 
-function renderPvPipeline(){
-  document.getElementById('pv-pipeline').innerHTML=PV_CFG.map(s=>{
-    const cnt=(window._pvData&&window._pvData[s.id]?window._pvData[s.id].filter(c=>!pvContacted[c.id]).length:0);
-    return`<div class="pv-block" style="background:${s.cor}18;border:1px solid ${s.cor}30" onclick="scrollToStep('${s.id}')">
-      <div class="pv-bname" style="color:${s.cor}">${s.label}</div>
-      <div class="pv-bcount" style="color:${cnt>0?s.cor:'var(--text3)'}">${cnt}</div>
-      <div class="pv-bsub" style="color:${s.cor}">${s.icon}</div>
-    </div>`;
-  }).join('');
-}
+function pvAtivos(id){return((window._pvData&&window._pvData[id])||[]).filter(c=>!pvContacted[c.id+'_'+id]);}
 
-function getSortedClientes(stepId,clientes){
-  const state=pvSortState[stepId]||{col:'diasDesdeCompra',dir:'desc'};
-  return [...clientes].filter(c=>!pvContacted[c.id]).sort((a,b)=>{
-    let va=a[state.col]||'', vb=b[state.col]||'';
-    if(typeof va==='number')return state.dir==='asc'?va-vb:vb-va;
-    return state.dir==='asc'?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
+function pvSorted(id){
+  let l=[...pvAtivos(id)];
+  const s=pvSortState[id]||{col:'diasDesdeCompra',dir:-1};
+  l.sort((a,b)=>{
+    let av=a[s.col]||'',bv=b[s.col]||'';
+    if(s.col==='diasDesdeCompra'){av=Number(a.diasDesdeCompra);bv=Number(b.diasDesdeCompra);}
+    if(typeof av==='number')return(av-bv)*s.dir;
+    return av.toString().localeCompare(bv.toString(),'pt')*s.dir;
   });
+  return l;
 }
 
-function setPvSort(stepId,col){
-  const cur=pvSortState[stepId]||{col:'diasDesdeCompra',dir:'desc'};
-  pvSortState[stepId]={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};
+function pvSortBy(id,col){
+  const cur=pvSortState[id]||{col,dir:1};
+  pvSortState[id]={col,dir:cur.col===col?cur.dir*-1:1};
   renderPvSteps();
 }
 
-function sortIcon(stepId,col){
-  const s=pvSortState[stepId]||{col:'diasDesdeCompra',dir:'desc'};
-  if(s.col!==col)return'<span class="sort-icon"></span>';
-  return`<span class="sort-icon" style="opacity:1;color:var(--accent)">${s.dir==='asc'?'▲':'▼'}</span>`;
+function pvArrow(id,col){const s=pvSortState[id];return s&&s.col===col?`<span class="si">${s.dir===1?'↑':'↓'}</span>`:'<span class="si">↕</span>';}
+
+function renderPvPipe(){
+  document.getElementById('pv-pipe').innerHTML=PV_CFG.map(s=>{
+    const n=pvAtivos(s.id).length;
+    return`<div class="pv-blk" style="background:${s.cor}18;border:1px solid ${s.cor}40" onclick="scrollToStep('${s.id}')">
+      <div class="pv-bn" style="color:${s.cor}">${s.label}</div>
+      <div class="pv-bc" style="color:${n>0?s.cor:'var(--text3)'}">${n}</div>
+      <div style="font-size:8px;opacity:.7;color:${s.cor};margin-top:1px">${s.icon}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderPvSteps(){
+  const tot=PV_CFG.reduce((a,s)=>a+pvAtivos(s.id).length,0);
+  document.getElementById('badge-pv').textContent=tot;
   document.getElementById('pv-steps').innerHTML=PV_CFG.map(s=>{
-    const todos=(window._pvData&&window._pvData[s.id])||[];
-    const clientes=getSortedClientes(s.id,todos);
+    const cl=pvSorted(s.id);
     const open=pvOpen[s.id]!==false;
-    // Mensagem com primeiro cliente da lista
-    const primeiro=clientes[0];
-    const waMsgHtml=primeiro
-      ?`<div class="wa-box">
-          <div class="wa-label">💬 Mensagem sugerida
-            <select class="wa-name-select" onchange="updateWaMsg('${s.id}',this.value)" id="wa-sel-${s.id}">
-              ${clientes.slice(0,20).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}
-            </select>
-          </div>
-          <div id="wa-txt-${s.id}" style="white-space:pre-line;font-size:13px;line-height:1.7">${s.wa(primeiro.nome,primeiro.produto)}</div>
-          <button class="wa-copy" onclick="copyWaStep('${s.id}')">Copiar</button>
-        </div>`
-      :'';
-    const tblHtml=clientes.length===0
-      ?'<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Nenhum cliente nesta etapa</div>'
-      :`<div class="tbl-wrap" style="padding:0 0 4px">
-          <table>
-            <thead><tr>
-              <th onclick="setPvSort('${s.id}','nome')">Nome ${sortIcon(s.id,'nome')}</th>
-              <th>CPF</th>
-              <th>Telefone</th>
-              <th onclick="setPvSort('${s.id}','produto')">Produto ${sortIcon(s.id,'produto')}</th>
-              <th>OS</th>
-              <th onclick="setPvSort('${s.id}','diasDesdeCompra')">Dias ${sortIcon(s.id,'diasDesdeCompra')}</th>
-              <th onclick="setPvSort('${s.id}','responsavel')">Vendedor ${sortIcon(s.id,'responsavel')}</th>
-              <th></th>
-            </tr></thead>
-            <tbody>${clientes.map(c=>`<tr id="pvrow-${c.id}">
-              <td style="color:var(--text);font-weight:500">${c.nome}</td>
-              <td style="font-size:11px">${c.cpf||'—'}</td>
-              <td>${c.telefone||'—'}</td>
-              <td style="font-size:12px">${c.produto||'—'}</td>
-              <td style="font-size:11px;color:var(--accent)">#${c.numero||c.id}</td>
-              <td style="font-weight:600;color:${s.cor}">${c.diasDesdeCompra}d</td>
-              <td style="font-size:12px">${c.responsavel||'—'}</td>
-              <td>
-                <div style="display:flex;gap:4px">
-                  <button class="btn-sm btn-msg" title="Ver mensagem" onclick="openWaModal('${s.id}',${JSON.stringify(c).replace(/"/g,'&quot;')})">💬</button>
-                  <button class="btn-sm btn-green" onclick="marcarContatado('${s.id}','${c.id}')">Contatar</button>
-                </div>
-              </td>
-            </tr>`).join('')}</tbody>
-          </table>
-        </div>`;
+    const first=cl[0];
     return`<div class="pv-step" id="step-${s.id}" style="background:${s.cor}0d;border-color:${s.cor}30">
-      <div class="pv-step-hdr" onclick="togglePvStep('${s.id}')">
-        <div class="pv-step-icon" style="background:${s.cor}18;border:1px solid ${s.cor}30">${s.icon}</div>
-        <div class="pv-step-info">
-          <div class="pv-step-title" style="color:${s.cor}">${s.label} — ${s.sub}</div>
-          <div class="pv-step-desc">${s.dias} dias desde a compra</div>
+      <div class="pv-hdr" onclick="togglePv('${s.id}')">
+        <div class="pv-icon" style="background:${s.cor}18;border:1px solid ${s.cor}30">${s.icon}</div>
+        <div class="pv-info">
+          <div class="pv-title" style="color:${s.cor}">${s.label} — ${s.sub}</div>
+          <div class="pv-desc">Clique para ligar/enviar mensagem</div>
         </div>
-        <div class="pv-step-count" style="color:${clientes.length>0?s.cor:'var(--text3)'}">${clientes.length}</div>
+        <div class="pv-cnt" style="color:${cl.length>0?s.cor:'var(--text3)'}">${cl.length}</div>
         <span class="pv-chev ${open?'open':''}">▼</span>
       </div>
       <div class="pv-body ${open?'open':''}">
-        ${waMsgHtml}
-        ${tblHtml}
+        ${cl.length===0
+          ?'<div style="text-align:center;padding:18px;color:var(--text3);font-size:13px">✓ Nenhum cliente pendente</div>'
+          :`<div class="wa-box">
+              <div class="wa-lbl">💬 Mensagem sugerida — ${first?first.nome:'[cliente]'}</div>
+              <div id="wa-${s.id}" style="white-space:pre-line;font-size:13px;line-height:1.7">${s.wa(first?first.nome:'[Nome]',first?first.produto:'[produto]')}</div>
+              <button class="wa-copy" onclick="copiarWa('${s.id}')">Copiar</button>
+            </div>
+            <div class="tw" style="padding:0 0 4px">
+              <table>
+                <thead><tr>
+                  <th onclick="pvSortBy('${s.id}','nome')" class="${(pvSortState[s.id]||{}).col==='nome'?'sorted':''}">Nome ${pvArrow(s.id,'nome')}</th>
+                  <th>Telefone</th><th>Produto</th>
+                  <th onclick="pvSortBy('${s.id}','diasDesdeCompra')" class="${(pvSortState[s.id]||{}).col==='diasDesdeCompra'?'sorted':''}">Dias ${pvArrow(s.id,'diasDesdeCompra')}</th>
+                  <th onclick="pvSortBy('${s.id}','responsavel')" class="${(pvSortState[s.id]||{}).col==='responsavel'?'sorted':''}">Vendedora ${pvArrow(s.id,'responsavel')}</th>
+                  <th>Ações</th>
+                </tr></thead>
+                <tbody>${cl.map(c=>`<tr id="pvrow-${c.id}_${s.id}">
+                  <td style="color:var(--text);font-weight:500">${c.nome}</td>
+                  <td style="font-size:12px">${c.telefone||'—'}</td>
+                  <td style="font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.produto}</td>
+                  <td style="font-weight:600;color:${s.cor}">${c.diasDesdeCompra}d</td>
+                  <td style="font-size:12px">${c.responsavel}</td>
+                  <td>
+                    <div style="display:flex;gap:4px">
+                      <button class="btn-sm btn-wa" onclick="abreWaModal('${s.id}',${JSON.stringify(c).replace(/'/g,'&#39;')})">💬</button>
+                      <button class="btn-sm btn-out" onclick="pvMarcar('${s.id}','${c.id}')">Contatar</button>
+                    </div>
+                  </td>
+                </tr>`).join('')}</tbody>
+              </table>
+            </div>`
+        }
       </div>
     </div>`;
   }).join('');
 }
 
-function updateWaMsg(stepId,clienteId){
-  const s=PV_CFG.find(x=>x.id===stepId);
-  const clientes=(window._pvData&&window._pvData[stepId])||[];
-  const c=clientes.find(x=>String(x.id)===String(clienteId));
-  if(!s||!c)return;
-  const el=document.getElementById('wa-txt-'+stepId);
-  if(el)el.textContent=s.wa(c.nome,c.produto);
-}
-
-function copyWaStep(stepId){
-  const el=document.getElementById('wa-txt-'+stepId);
-  if(!el)return;
-  navigator.clipboard.writeText(el.innerText).then(()=>{
-    const btn=el.parentElement.querySelector('.wa-copy');
-    if(btn){btn.textContent='✓ Copiado!';setTimeout(()=>btn.textContent='Copiar',2000);}
-  });
-}
-
-function marcarContatado(stepId,clienteId){
-  pvContacted[clienteId]=true;
-  const row=document.getElementById('pvrow-'+clienteId);
-  if(row){
-    row.style.transition='opacity .4s';
-    row.style.opacity='0';
-    setTimeout(()=>{
-      renderPvPipeline();
-      renderPvSteps();
-    },400);
-  }
-}
-
-function togglePvStep(id){pvOpen[id]=(pvOpen[id]===false);renderPvSteps();}
+function pvMarcar(sid,cid){pvContacted[cid+'_'+sid]=true;renderPvPipe();renderPvSteps();}
+function togglePv(id){pvOpen[id]=!(pvOpen[id]!==false);document.querySelector(`#step-${id} .pv-body`)?.classList.toggle('open');document.querySelector(`#step-${id} .pv-chev`)?.classList.toggle('open');}
 function scrollToStep(id){document.getElementById('step-'+id)?.scrollIntoView({behavior:'smooth',block:'start'});}
+function copiarWa(id){const el=document.getElementById('wa-'+id);if(!el)return;navigator.clipboard.writeText(el.innerText).then(()=>{const b=el.parentElement.querySelector('.wa-copy');if(b){b.textContent='✓ Copiado!';setTimeout(()=>b.textContent='Copiar',2000);}});}
 
-function openWaModal(stepId,c){
-  if(typeof c==='string')try{c=JSON.parse(c);}catch{return;}
-  const s=PV_CFG.find(x=>x.id===stepId);
-  if(!s||!c)return;
+function abreWaModal(sid,c){
+  const s=PV_CFG.find(x=>x.id===sid);
+  if(!s)return;
   const msg=s.wa(c.nome||'Cliente',c.produto||'produto');
-  document.getElementById('modal-wa-title').textContent='💬 WhatsApp — '+(c.nome||'Cliente');
-  document.getElementById('modal-wa-body').innerHTML=`
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">
-      Para: <strong style="color:var(--text)">${c.telefone||'—'}</strong> · Etapa: <strong style="color:${s.cor}">${s.label}</strong>
-    </div>
-    <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:14px;white-space:pre-line;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px" id="modal-msg">${msg}</div>
+  document.getElementById('mwa-title').textContent='💬 '+c.nome;
+  document.getElementById('mwa-body').innerHTML=`
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Etapa: <strong style="color:${s.cor}">${s.label}</strong> · Tel: <strong style="color:var(--text)">${c.telefone||'—'}</strong> · ${c.diasDesdeCompra}d desde a compra</div>
+    <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:13px;white-space:pre-line;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:13px" id="modal-msg">${msg}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${c.telefone?`<a href="https://wa.me/55${(c.telefone||'').replace(/\D/g,'')}" target="_blank" style="text-decoration:none">
-        <button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600">💬 Abrir WhatsApp</button>
-      </a>`:''}
-      <button onclick="navigator.clipboard.writeText(document.getElementById('modal-msg').innerText).then(()=>this.textContent='✓ Copiado!')" style="background:rgba(59,130,196,.15);border:1px solid rgba(59,130,196,.3);color:var(--accent);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600">📋 Copiar</button>
-      <button onclick="marcarContatado('${stepId}','${c.id}');closeModal()" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86EFAC;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600">✓ Marcar Contatado</button>
+      ${c.telefone?`<a href="https://wa.me/55${(c.telefone||'').replace(/\D/g,'')}" target="_blank" style="text-decoration:none"><button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">💬 Abrir WhatsApp</button></a>`:''}
+      <button onclick="navigator.clipboard.writeText(document.getElementById('modal-msg').innerText).then(()=>this.textContent='✓ Copiado!')" style="background:rgba(59,130,196,.15);border:1px solid rgba(59,130,196,.3);color:var(--accent);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">📋 Copiar</button>
+      <button onclick="pvMarcar('${sid}','${c.id}');closeModal();" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✓ Marcar Contatado</button>
     </div>`;
   document.getElementById('modal-wa').classList.add('open');
 }
 function closeModal(){document.getElementById('modal-wa').classList.remove('open');}
 document.getElementById('modal-wa').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+document.getElementById('modal-ficha').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('modal-ficha').classList.remove('open');});
 
-// ── ANIVERSARIANTES ──
-let _allAniv=[];
-function setAnivFiltro(f){
-  anivFiltro=f;
-  ['hoje','semana','mes'].forEach(x=>{
-    const b=document.getElementById('aniv-btn-'+x);
-    if(b){b.style.background=x===f?'rgba(236,72,153,.2)':'rgba(37,99,170,.2)';
-      b.style.borderColor=x===f?'rgba(236,72,153,.4)':'rgba(59,130,196,.35)';
-      b.style.color=x===f?'#F9A8D4':'var(--accent)';}
-  });
-  renderAniv();
-}
-
+// ══════════════════════════════════════════════════════════════════════════════
+// ANIVERSARIANTES
+// ══════════════════════════════════════════════════════════════════════════════
 async function loadAniversariantes(){
-  document.getElementById('aniv-content').innerHTML='<div class="loading-center"><div class="spinner"></div></div>';
+  document.getElementById('aniv-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  const mesH=String(now.getMonth()+1).padStart(2,'0'),diaH=String(now.getDate()).padStart(2,'0');
   try{
-    // Busca vendas dos últimos 400 dias para extrair clientes únicos com data de nascimento
-    const chunks=[];
-    for(let off=0;off<400;off+=30){
-      chunks.push(api('/api/vendas?inicio='+dAgo(off+30)+'&fim='+dAgo(off)));
-    }
-    const results=await Promise.allSettled(chunks);
-    const seen=new Set(), clientes=[];
-    results.forEach(r=>{
-      if(r.status!=='fulfilled')return;
-      const arr=Array.isArray(r.value)?r.value:(r.value.data||r.value.vendas||[]);
-      arr.forEach(v=>{
-        const cli=v.cliente;
-        if(!cli||!cli.nascimento||!cli.id||seen.has(cli.id)||cli.nome==='Venda A Vista')return;
-        seen.add(cli.id);
-        clientes.push({id:cli.id,nome:cli.nome,nascimento:cli.nascimento,telefone:(cli.telefones&&cli.telefones[0]&&cli.telefones[0].numero)||'',cpf:cli.cpf_cnpj||''});
-      });
+    const all=await getVendas400();
+    const visto=new Set(),aniv=[];
+    all.forEach(v=>{
+      if(!v.cliente)return;
+      const c=v.cliente;
+      if(!visto.has(c.id)&&c.nascimento){
+        const p=c.nascimento.split('-');
+        if(p[1]===mesH&&p[2]===diaH){
+          visto.add(c.id);
+          const tel=(c.telefones&&c.telefones[0]&&c.telefones[0].numero)||'';
+          const idade=p[0]?now.getFullYear()-Number(p[0]):'';
+          aniv.push({nome:c.nome||'—',tel,nascimento:c.nascimento,idade});
+        }
+      }
     });
-    _allAniv=clientes;
-    addLog('Aniversariantes: '+clientes.length+' clientes carregados',true);
-    renderAniv();
-  }catch(e){addLog('Erro aniversariantes: '+e.message,false);document.getElementById('aniv-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
-}
-
-function renderAniv(){
-  const now=new Date();
-  const mesAtual=now.getMonth()+1, diaAtual=now.getDate();
-  const diaSemanaFim=new Date(now); diaSemanaFim.setDate(diaSemanaFim.getDate()+6);
-
-  let filtrados=_allAniv.filter(c=>{
-    if(!c.nascimento)return false;
-    const parts=c.nascimento.split('-');
-    if(parts.length<3)return false;
-    const mesNasc=parseInt(parts[1]), diaNasc=parseInt(parts[2]);
-    if(anivFiltro==='hoje') return mesNasc===mesAtual&&diaNasc===diaAtual;
-    if(anivFiltro==='semana'){
-      const dataAniv=new Date(now.getFullYear(),mesNasc-1,diaNasc);
-      return dataAniv>=now&&dataAniv<=diaSemanaFim;
+    document.getElementById('badge-aniv').textContent=aniv.length||'0';
+    if(!aniv.length){
+      document.getElementById('aniv-content').innerHTML='<div class="card" style="text-align:center;padding:36px"><div style="font-size:36px;margin-bottom:10px">🎂</div><div style="font-size:15px;font-weight:600">Nenhum aniversariante hoje</div></div>';
+      return;
     }
-    return mesNasc===mesAtual;
-  });
-
-  // Ordena por dia
-  filtrados.sort((a,b)=>{
-    const da=parseInt(a.nascimento.split('-')[2]), db=parseInt(b.nascimento.split('-')[2]);
-    return da-db;
-  });
-
-  const labels={'hoje':'hoje','semana':'esta semana','mes':'este mês'};
-  document.getElementById('aniv-subtitle').textContent=`${filtrados.length} aniversariante(s) ${labels[anivFiltro]}`;
-  document.getElementById('badge-aniv').textContent=anivFiltro==='hoje'?filtrados.length:'';
-
-  if(!filtrados.length){
-    document.getElementById('aniv-content').innerHTML=`<div class="card" style="text-align:center;padding:40px;color:var(--text3)">🎂 Nenhum aniversariante ${labels[anivFiltro]}</div>`;
-    return;
-  }
-  document.getElementById('aniv-content').innerHTML=filtrados.map(c=>{
-    const parts=c.nascimento.split('-');
-    const dia=parts[2], mes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(parts[1])-1];
-    const emoji=['😊','🎉','🥳','🌟','✨','🎂'][Math.floor(Math.random()*6)];
-    const waMsg=`Olá, ${c.nome.split(' ')[0]}! ${emoji}\n\nA equipe da *ORO Óticas* deseja um *Feliz Aniversário*! 🎂🎉\n\nQue este novo ano seja repleto de saúde, felicidade e... boa visão! 👓✨\n\nCom carinho, ORO Óticas`;
-    return`<div class="aniv-card">
-      <div class="aniv-avatar">${emoji}</div>
-      <div style="flex:1">
-        <div class="aniv-name">${c.nome}</div>
-        <div class="aniv-info">🎂 ${dia} de ${mes} · CPF: ${c.cpf||'—'}</div>
-        <div class="aniv-phone">📱 ${c.telefone||'Sem telefone'}</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        ${c.telefone?`<a href="https://wa.me/55${c.telefone.replace(/\D/g,'')}" target="_blank" style="text-decoration:none">
-          <button class="btn-sm btn-green">💬 WA</button>
-        </a>`:''}
-        <button class="btn-sm btn-blue" onclick="navigator.clipboard.writeText(\`${waMsg.replace(/`/g,"'")}\`).then(()=>this.textContent='✓').catch(()=>{})">📋</button>
-      </div>
-    </div>`;
-  }).join('');
+    document.getElementById('aniv-content').innerHTML=`<div style="font-size:13px;color:var(--text3);margin-bottom:12px">🎉 ${aniv.length} aniversariante${aniv.length>1?'s':''} hoje — ${diaH}/${mesH}</div>
+    ${aniv.map(c=>{
+      const ini=c.nome.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+      return`<div class="aniv-card">
+        <div class="aniv-av">${ini}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${c.nome}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">📞 ${c.tel||'Sem telefone'}</div>
+        </div>
+        ${c.idade?`<div style="font-size:20px;font-weight:700;color:#F9A8D4;margin-right:8px">${c.idade}</div>`:''}
+        ${c.tel?`<a href="https://wa.me/55${c.tel.replace(/\D/g,'')}&text=${encodeURIComponent('Olá, '+c.nome.split(' ')[0]+'! Aqui é da *ORO Óticas*. Passando para desejar um *Feliz Aniversário*! 🎂🎉 Que seu dia seja maravilhoso! Conte sempre com a gente. 🤍')}" target="_blank" style="text-decoration:none"><button style="background:rgba(236,72,153,.15);border:1px solid rgba(236,72,153,.3);color:#F9A8D4;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">🎂 Felicitar</button></a>`:''}
+      </div>`;
+    }).join('')}`;
+    log('Aniversariantes → '+aniv.length,true);
+  }catch(e){log('aniv erro: '+e.message,false);document.getElementById('aniv-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
 }
 
-// ── METAS ──
-let _metaValor=localStorage.getItem('oro_meta')||'80000';
+// ══════════════════════════════════════════════════════════════════════════════
+// RECEITAS VENCENDO
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadReceitas(){
+  document.getElementById('receitas-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  try{
+    const all=await getVendas400();
+    const visto=new Set(),rec=[];
+    all.forEach(v=>{
+      if(!v.cliente)return;
+      const c=v.cliente;
+      if(!visto.has(c.id+'_'+v.data)){
+        visto.add(c.id+'_'+v.data);
+        // Receita vence em 12 meses a partir da data de compra
+        const dataCompra=new Date(v.data);
+        const vence=new Date(dataCompra);vence.setFullYear(vence.getFullYear()+1);
+        const diasParaVencer=Math.floor((vence-now)/86400000);
+        if(diasParaVencer>=0&&diasParaVencer<=45){
+          const tel=(c.telefones&&c.telefones[0]&&c.telefones[0].numero)||'';
+          rec.push({
+            nome:c.nome||'—',tel,
+            dataCompra:v.data,
+            vence:vence.toISOString().split('T')[0],
+            diasParaVencer,
+            vendedora:(v.funcionario&&v.funcionario.nome)||'—',
+            produto:((v.itens&&v.itens[0]&&v.itens[0].produto&&v.itens[0].produto.descricao)||'—')
+          });
+        }
+      }
+    });
+    rec.sort((a,b)=>a.diasParaVencer-b.diasParaVencer);
+    document.getElementById('badge-receitas').textContent=rec.length||'0';
+    if(!rec.length){
+      document.getElementById('receitas-content').innerHTML='<div class="card" style="text-align:center;padding:30px;color:var(--text3);font-size:13px">✓ Nenhuma receita vencendo nos próximos 45 dias</div>';
+      return;
+    }
+    document.getElementById('receitas-content').innerHTML=`
+      <div class="notice">⏳ <strong>${rec.length} cliente${rec.length>1?'s':''}</strong> com receita vencendo nos próximos 45 dias. Entre em contato agora para agendar o exame!</div>
+      <div class="card"><div class="tw"><table>
+        <thead><tr><th>Cliente</th><th>Telefone</th><th>Produto</th><th>Comprou em</th><th>Vence em</th><th>Dias</th><th>Vendedora</th><th>Ação</th></tr></thead>
+        <tbody>${rec.map(r=>`<tr>
+          <td style="color:var(--text);font-weight:500">${r.nome}</td>
+          <td style="font-size:12px">${r.tel||'—'}</td>
+          <td style="font-size:11px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.produto}</td>
+          <td>${fmt(r.dataCompra)}</td>
+          <td>${fmt(r.vence)}</td>
+          <td><span style="font-weight:600;color:${r.diasParaVencer<=7?'var(--red)':r.diasParaVencer<=30?'var(--amber)':'var(--text2)'}">${r.diasParaVencer}d</span></td>
+          <td style="font-size:12px">${r.vendedora}</td>
+          <td>${r.tel?`<a href="https://wa.me/55${r.tel.replace(/\D/g,'')}&text=${encodeURIComponent('Olá, '+r.nome.split(' ')[0]+'! 👋 Da *ORO Óticas*.\n\n⏳ Sua receita de óculos vence em '+r.diasParaVencer+' dias! Para continuar enxergando bem, é importante renovar.\n\nPodemos te ajudar a agendar um exame de vista ou indicar um oftalmologista. Pode contar com a gente! 😊')}" target="_blank"><button class="btn-sm btn-wa">💬</button></a>`:'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div></div>`;
+    log('receitas vencendo → '+rec.length,true);
+  }catch(e){log('receitas erro: '+e.message,false);document.getElementById('receitas-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// METAS
+// ══════════════════════════════════════════════════════════════════════════════
+function saveMeta(){const v=document.getElementById('meta-valor').value;if(v)localStorage.setItem('oro_meta',v);}
+
 async function loadMetas(){
-  document.getElementById('metas-content').innerHTML='<div class="loading-center"><div class="spinner"></div></div>';
-  document.getElementById('meta-valor').value=_metaValor;
+  document.getElementById('metas-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  const metaVal=parseFloat(localStorage.getItem('oro_meta')||'80000');
+  document.getElementById('meta-valor').value=metaVal;
   try{
-    // Busca vendas do mês atual
-    const hoje_dt=new Date();
-    const inicioMes=`${hoje_dt.getFullYear()}-${String(hoje_dt.getMonth()+1).padStart(2,'0')}-01`;
-    const fimMes=hoje_dt.toISOString().split('T')[0];
-
-    const r=await api('/api/vendas?inicio='+inicioMes+'&fim='+fimMes);
+    const ano=now.getFullYear(),mes=now.getMonth(),dia=now.getDate();
+    const ini=`${ano}-${String(mes+1).padStart(2,'0')}-01`;
+    const fim=now.toISOString().split('T')[0];
+    const duM=duMes(ano,mes),duA=duAte(ano,mes,dia),duF=duFaltam(ano,mes,dia);
+    const metaDia=metaVal/duM,metaSemana=metaDia*5;
+    const r=await api('/api/vendas?inicio='+ini+'&fim='+fim);
     const arr=Array.isArray(r)?r:(r.data||r.vendas||[]);
-    addLog('GET /api/vendas (metas) → '+arr.length+' registros',true);
-
-    const meta=parseFloat(_metaValor)||80000;
-    const diasNoMes=new Date(hoje_dt.getFullYear(),hoje_dt.getMonth()+1,0).getDate();
-    const diaAtual=hoje_dt.getDate();
-    const diasRestantes=diasNoMes-diaAtual;
-
-    // Agrupa por vendedor
-    const vendedores={};
+    log('metas vendas → '+arr.length,true);
+    const por={};
     arr.forEach(v=>{
-      const nome=(v.funcionario&&v.funcionario.nome)||'Equipe';
-      if(!vendedores[nome])vendedores[nome]={nome,total:0,count:0};
-      vendedores[nome].total+=Number(v.valor_liquido||0);
-      vendedores[nome].count++;
+      const n=(v.funcionario&&v.funcionario.nome)||'Sem vendedora';
+      if(!por[n])por[n]={nome:n,total:0,qtd:0};
+      por[n].total+=Number(v.valor_liquido||0);por[n].qtd++;
     });
-
-    const totalLoja=Object.values(vendedores).reduce((s,v)=>s+v.total,0);
-    const pct=Math.min(100,Math.round((totalLoja/meta)*100));
-    const falta=Math.max(0,meta-totalLoja);
-    const metaDiaria=meta/diasNoMes;
-    const metaSemana=metaDiaria*7;
-
+    const vds=Object.values(por).sort((a,b)=>b.total-a.total);
+    const totG=vds.reduce((s,v)=>s+v.total,0);
+    const pctG=Math.min(100,(totG/metaVal)*100);
+    const faltaG=Math.max(0,metaVal-totG);
+    const ritmoG=duA>0?totG/duA:0;
+    const projG=ritmoG*duM;
+    atualizaMetaTopbar(totG,metaVal);
     document.getElementById('metas-content').innerHTML=`
-      <!-- LOJA GERAL -->
-      <div class="meta-vendor-card" style="border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.05)">
-        <div class="meta-vendor-name">🏪 ORO Óticas — Visão Geral do Mês</div>
-        <div class="meta-grid">
-          <div class="meta-box">
-            <div class="meta-box-label">Realizado no Mês</div>
-            <div class="meta-box-val" style="color:var(--green)">${brl(totalLoja)}</div>
-          </div>
-          <div class="meta-box">
-            <div class="meta-box-label">Meta do Mês</div>
-            <div class="meta-box-val" style="color:var(--gold)">${brl(meta)}</div>
-          </div>
-          <div class="meta-box">
-            <div class="meta-box-label">Falta para a Meta</div>
-            <div class="meta-box-val" style="color:${falta===0?'var(--green)':'var(--amber)'}">${brl(falta)}</div>
-          </div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div><div style="font-size:20px;font-weight:700">${brl(totG)}</div><div style="font-size:12px;color:var(--text3)">Total vendido — dia ${dia}/${mes+1}</div></div>
+          <div style="text-align:right"><div style="font-size:24px;font-weight:700;color:${pctG>=100?'var(--green)':pctG>=70?'var(--amber)':'var(--red)'}">${pctG.toFixed(1)}%</div><div style="font-size:11px;color:var(--text3)">de ${brl(metaVal)}</div></div>
         </div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Progresso: ${pct}% · Dia ${diaAtual}/${diasNoMes} · ${diasRestantes} dias restantes</div>
-        <div class="meta-progress-bar">
-          <div class="meta-progress-fill" style="width:${pct}%;background:${pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--accent)'}"></div>
+        <div class="meta-bar"><div class="meta-fill" style="width:${pctG}%;background:${pctG>=100?'var(--green)':pctG>=70?'var(--amber)':'var(--accent)'}"></div></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px">
+          ${[['Meta/dia útil',brl(metaDia),'var(--accent)'],['Meta/semana útil',brl(metaSemana),'var(--accent)'],['Falta p/ meta',faltaG<=0?'✓ Batida!':brl(faltaG),faltaG<=0?'var(--green)':'var(--red)'],['Precisa/dia restante',duF>0?brl(faltaG/duF)+'/dia':'—','var(--amber)'],['Dias úteis mês',duM+'d','var(--text2)'],['Passados',duA+'d','var(--text2)'],['Restantes',duF+'d','var(--text2)'],['Projeção mês',brl(projG),projG>=metaVal?'var(--green)':'var(--amber)']].map(([l,v,c])=>`<div style="text-align:center;padding:9px 6px;background:rgba(11,31,58,.5);border-radius:8px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">${l}</div><div style="font-size:13px;font-weight:700;color:${c}">${v}</div></div>`).join('')}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
-          <div class="meta-box">
-            <div class="meta-box-label">Meta por Dia</div>
-            <div class="meta-box-val" style="font-size:16px;color:var(--accent)">${brl(metaDiaria)}</div>
-          </div>
-          <div class="meta-box">
-            <div class="meta-box-label">Meta por Semana</div>
-            <div class="meta-box-val" style="font-size:16px;color:var(--accent)">${brl(metaSemana)}</div>
-          </div>
-        </div>
-        ${diasRestantes>0?`<div style="margin-top:10px;padding:10px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:12px;color:#FCD34D">
-          💡 Para bater a meta, precisa de <strong>${brl(falta/diasRestantes)}/dia</strong> nos próximos ${diasRestantes} dias
-        </div>`:''}
       </div>
-
-      <!-- POR VENDEDOR -->
-      ${Object.values(vendedores).sort((a,b)=>b.total-a.total).map(v=>{
-        const metaV=meta/Math.max(1,Object.keys(vendedores).length);
-        const pctV=Math.min(100,Math.round((v.total/metaV)*100));
-        const faltaV=Math.max(0,metaV-v.total);
-        return`<div class="meta-vendor-card">
-          <div class="meta-vendor-name">👤 ${v.nome} <span class="badge b-blue" style="font-size:11px;font-weight:500">${v.count} vendas</span></div>
-          <div class="meta-grid">
-            <div class="meta-box">
-              <div class="meta-box-label">Realizado</div>
-              <div class="meta-box-val" style="color:var(--green);font-size:18px">${brl(v.total)}</div>
+      ${vds.map(vd=>{
+        const pct=Math.min(100,(vd.total/metaVal)*100);
+        const falta=Math.max(0,metaVal-vd.total);
+        const ritmo=duA>0?vd.total/duA:0;
+        const proj=ritmo*duM;
+        return`<div class="card" style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--accent));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">${vd.nome.split(' ').map(p=>p[0]).slice(0,2).join('')}</div>
+              <div><div style="font-size:14px;font-weight:600">${vd.nome}</div><div style="font-size:11px;color:var(--text3)">${vd.qtd} vendas · ticket ${brl(vd.total/(vd.qtd||1))}</div></div>
             </div>
-            <div class="meta-box">
-              <div class="meta-box-label">Meta estimada</div>
-              <div class="meta-box-val" style="color:var(--gold);font-size:18px">${brl(metaV)}</div>
-            </div>
-            <div class="meta-box">
-              <div class="meta-box-label">Falta</div>
-              <div class="meta-box-val" style="color:${faltaV===0?'var(--green)':'var(--amber)';};font-size:18px">${brl(faltaV)}</div>
-            </div>
+            <div style="text-align:right"><div style="font-size:17px;font-weight:700">${brl(vd.total)}</div><div style="font-size:11px;color:${pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)'}">${pct.toFixed(1)}%</div></div>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:5px">${pctV}% da meta individual</div>
-          <div class="meta-progress-bar">
-            <div class="meta-progress-fill" style="width:${pctV}%;background:${pctV>=100?'var(--green)':pctV>=70?'var(--amber)':'var(--accent)'}"></div>
+          <div class="meta-bar"><div class="meta-fill" style="width:${pct}%;background:${pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--accent)'}"></div></div>
+          <div style="display:flex;gap:14px;margin-top:7px;font-size:11px;color:var(--text3);flex-wrap:wrap">
+            <span>Falta: <strong style="color:${falta<=0?'var(--green)':'var(--text2)'}">${falta<=0?'✓ Meta batida!':brl(falta)}</strong></span>
+            <span>·</span><span>Precisa ${duF}d: <strong style="color:var(--amber)">${duF>0?brl(falta/duF)+'/dia':'—'}</strong></span>
+            <span>·</span><span>Projeção: <strong style="color:${proj>=metaVal?'var(--green)':'var(--amber)'}">${brl(proj)}</strong></span>
           </div>
         </div>`;
-      }).join('')}
-    `;
-  }catch(e){addLog('Erro metas: '+e.message,false);document.getElementById('metas-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+      }).join('')}`;
+  }catch(e){log('metas erro: '+e.message,false);document.getElementById('metas-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
 }
 
-function salvarMeta(){
-  _metaValor=document.getElementById('meta-valor').value||'80000';
-  localStorage.setItem('oro_meta',_metaValor);
-  loadMetas();
+// ══════════════════════════════════════════════════════════════════════════════
+// RANKING DO DIA
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadRanking(){
+  document.getElementById('ranking-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  try{
+    const hoje=dAgo(0);
+    const r=await api('/api/vendas?inicio='+hoje+'&fim='+hoje);
+    const arr=Array.isArray(r)?r:(r.data||r.vendas||[]);
+    log('ranking hoje → '+arr.length+' vendas',true);
+    const por={};
+    arr.forEach(v=>{
+      const n=(v.funcionario&&v.funcionario.nome)||'Sem vendedora';
+      if(!por[n])por[n]={nome:n,total:0,qtd:0,vendas:[]};
+      por[n].total+=Number(v.valor_liquido||0);por[n].qtd++;por[n].vendas.push(v);
+    });
+    const rank=Object.values(por).sort((a,b)=>b.total-a.total);
+    const totalDia=rank.reduce((s,v)=>s+v.total,0);
+    const medals=['🥇','🥈','🥉'];
+    if(!rank.length){
+      document.getElementById('ranking-content').innerHTML='<div class="card" style="text-align:center;padding:30px;color:var(--text3);font-size:13px">Nenhuma venda registrada hoje ainda</div>';
+      return;
+    }
+    document.getElementById('ranking-content').innerHTML=`
+      <div class="card" style="margin-bottom:14px;text-align:center">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:4px">Total vendido hoje — ${fmt(hoje)}</div>
+        <div style="font-size:28px;font-weight:700;color:var(--green)">${brl(totalDia)}</div>
+        <div style="font-size:12px;color:var(--text3)">${arr.length} vendas · ${rank.length} vendedora${rank.length>1?'s':''}</div>
+      </div>
+      ${rank.map((vd,i)=>{
+        const pct=Math.min(100,(vd.total/rank[0].total)*100);
+        return`<div class="card" style="margin-bottom:10px;${i===0?'border-color:rgba(201,168,76,.35);':''}">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:28px">${medals[i]||'  '}</div>
+            <div style="flex:1">
+              <div style="font-size:15px;font-weight:700;color:var(--text)">${vd.nome}</div>
+              <div style="font-size:12px;color:var(--text3)">${vd.qtd} venda${vd.qtd>1?'s':''} hoje · ticket médio ${brl(vd.total/(vd.qtd||1))}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:20px;font-weight:700;color:${i===0?'var(--gold)':'var(--text)'}">${brl(vd.total)}</div>
+            </div>
+          </div>
+          <div class="meta-bar" style="margin-top:8px"><div class="meta-fill" style="width:${pct}%;background:${i===0?'var(--gold)':i===1?'var(--text2)':'var(--accent)'}"></div></div>
+        </div>`;
+      }).join('')}`;
+  }catch(e){log('ranking erro: '+e.message,false);document.getElementById('ranking-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
 }
 
-// ── LOG ──
-function renderApiLog(){
-  document.getElementById('apilog-content').innerHTML=LOGS.length
-    ?LOGS.map(l=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;font-size:12px;margin-bottom:3px;background:${l.ok?'rgba(34,197,94,.07)':'rgba(239,68,68,.07)'};border:1px solid ${l.ok?'rgba(34,197,94,.14)':'rgba(239,68,68,.14)'}">
-      <span>${l.ok?'✓':'⚠'}</span>
-      <span style="flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${l.txt}</span>
-      <span style="font-size:10px;color:var(--text3)">${l.t}</span>
-      <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:8px;background:${l.ok?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)'};color:${l.ok?'#86EFAC':'#FCA5A5'}">${l.ok?'OK':'ERR'}</span>
-    </div>`).join('')
-    :'<div style="color:var(--text3);font-size:13px;padding:16px">Nenhuma chamada ainda</div>';
+// ══════════════════════════════════════════════════════════════════════════════
+// RFV
+// ══════════════════════════════════════════════════════════════════════════════
+const RFV_SEGS=[
+  {id:'campeao',  label:'🏆 Campeão',    cls:'rfv-campeao',  acao:'Ligar para agradecer e pedir indicação'},
+  {id:'leal',     label:'💚 Leal',        cls:'rfv-leal',     acao:'Convidar para lançamentos e novidades'},
+  {id:'potencial',label:'⬆️ Potencial',   cls:'rfv-potencial',acao:'Oferecer upgrade ou segundo produto'},
+  {id:'novo',     label:'🆕 Novo',        cls:'rfv-novo',     acao:'Verificar adaptação e criar vínculo'},
+  {id:'risco',    label:'⚠️ Em Risco',   cls:'rfv-risco',    acao:'Ligar HOJE com oferta especial'},
+  {id:'inativo',  label:'😴 Inativo',    cls:'rfv-inativo',  acao:'Campanha de reativação urgente'},
+  {id:'hibernando',label:'❄️ Hibernando',cls:'rfv-hibernando',acao:'Email ou mensagem de "sentimos sua falta"'},
+];
+
+let _rfvData=null,_rfvFiltro='todos';
+
+function rfvScore(v){
+  const R=v.r<=30?5:v.r<=60?4:v.r<=90?3:v.r<=180?2:1;
+  const F=v.f>=5?5:v.f>=3?4:v.f>=2?3:v.f>=1?2:1;
+  const V=v.v>=5000?5:v.v>=2000?4:v.v>=1000?3:v.v>=300?2:1;
+  return{R,F,V,total:R+F+V};
+}
+function rfvSeg(sc){
+  const{R,F,V}=sc;
+  if(R>=4&&F>=4&&V>=4)return'campeao';
+  if(R>=3&&F>=3&&V>=3)return'leal';
+  if(R>=4&&V>=3)return'potencial';
+  if(R>=4&&F<=2)return'novo';
+  if(R<=2&&F>=3)return'risco';
+  if(R<=2&&F>=2)return'inativo';
+  return'hibernando';
 }
 
-// ── NAVEGAÇÃO ──
+async function loadRfv(){
+  document.getElementById('rfv-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  document.getElementById('rfv-resumo').innerHTML='';
+  try{
+    const all=await getVendas400();
+    log('RFV: '+all.length+' vendas',true);
+    const clMap={};
+    all.forEach(v=>{
+      if(!v.cliente)return;
+      const id=v.cliente.id;if(!id)return;
+      const dv=new Date(v.data);
+      if(!clMap[id])clMap[id]={id,nome:v.cliente.nome||'—',tel:(v.cliente.telefones&&v.cliente.telefones[0]&&v.cliente.telefones[0].numero)||'',ultima:dv,f:0,v:0};
+      if(dv>clMap[id].ultima)clMap[id].ultima=dv;
+      clMap[id].f++;clMap[id].v+=Number(v.valor_liquido||0);
+    });
+    const lista=Object.values(clMap).map(c=>{
+      const r=Math.floor((now-c.ultima)/86400000);
+      const sc=rfvScore({r,f:c.f,v:c.v});
+      return{...c,r,sc,seg:rfvSeg(sc),ultimaFmt:c.ultima.toISOString().split('T')[0]};
+    }).sort((a,b)=>a.r-b.r);
+    _rfvData=lista;
+    const cnt={};RFV_SEGS.forEach(s=>cnt[s.id]=0);lista.forEach(c=>cnt[c.seg]=(cnt[c.seg]||0)+1);
+    document.getElementById('rfv-resumo').innerHTML=`
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+        ${RFV_SEGS.map(s=>`<div onclick="rfvFiltrar('${s.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:border .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div class="rfv-seg ${s.cls}" style="margin-bottom:7px;font-size:10px">${s.label}</div>
+          <div style="font-size:22px;font-weight:700">${cnt[s.id]||0}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">→ ${s.acao}</div>
+        </div>`).join('')}
+        <div onclick="rfvFiltrar('todos')" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:border .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">📊 Todos</div>
+          <div style="font-size:22px;font-weight:700">${lista.length}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">clientes analisados</div>
+        </div>
+      </div>`;
+    renderRfvTab(lista);
+  }catch(e){log('rfv erro: '+e.message,false);document.getElementById('rfv-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+}
+
+function rfvFiltrar(seg){
+  _rfvFiltro=seg;
+  if(!_rfvData)return;
+  renderRfvTab(seg==='todos'?_rfvData:_rfvData.filter(c=>c.seg===seg));
+}
+
+function renderRfvTab(lista){
+  if(!lista.length){document.getElementById('rfv-content').innerHTML='<div style="text-align:center;padding:28px;color:var(--text3);font-size:13px">Nenhum cliente neste segmento</div>';return;}
+  const segInfo=RFV_SEGS.find(s=>s.id===_rfvFiltro);
+  document.getElementById('rfv-content').innerHTML=`
+    ${segInfo?`<div class="notice" style="margin-bottom:12px">💡 <strong>Ação recomendada:</strong> ${segInfo.acao}</div>`:''}
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${lista.length} clientes</div>
+    <div class="tw"><table>
+      <thead><tr><th>Cliente</th><th>Segmento</th><th title="Dias desde última compra">R — Recência</th><th title="Nº compras">F — Freq.</th><th title="Total gasto">V — Valor</th><th>Score</th><th>Última Compra</th><th></th></tr></thead>
+      <tbody>${lista.map(c=>{
+        const s=RFV_SEGS.find(x=>x.id===c.seg)||RFV_SEGS[6];
+        return`<tr>
+          <td style="color:var(--text);font-weight:500;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nome}</td>
+          <td><span class="rfv-seg ${s.cls}">${s.label}</span></td>
+          <td><span style="font-weight:600;color:${c.r<=30?'var(--green)':c.r<=90?'var(--amber)':'var(--red)'}">${c.r}d</span><span style="font-size:10px;color:var(--text3);margin-left:3px">(${c.sc.R}/5)</span></td>
+          <td><span style="font-weight:600">${c.f}x</span><span style="font-size:10px;color:var(--text3);margin-left:3px">(${c.sc.F}/5)</span></td>
+          <td><span style="font-weight:600;color:var(--green)">${brl(c.v)}</span><span style="font-size:10px;color:var(--text3);margin-left:3px">(${c.sc.V}/5)</span></td>
+          <td>
+            <div style="display:flex;align-items:flex-end;gap:2px">
+              ${[c.sc.R,c.sc.F,c.sc.V].map(s=>`<div style="width:8px;height:${s*5}px;background:${s>=4?'var(--green)':s>=3?'var(--amber)':'var(--accent)'};border-radius:2px"></div>`).join('')}
+              <span style="font-size:10px;color:var(--text3);margin-left:3px">${c.sc.total}/15</span>
+            </div>
+          </td>
+          <td style="font-size:11px">${fmt(c.ultimaFmt)}</td>
+          <td>${c.tel?`<a href="https://wa.me/55${c.tel.replace(/\D/g,'')}" target="_blank"><button class="btn-sm btn-wa">💬</button></a>`:'—'}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ORIGENS
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadOrigens(){
+  document.getElementById('origens-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  try{
+    const all=await getVendas400();
+    const orig={};
+    all.forEach(v=>{
+      const ors=(v.origensCliente&&v.origensCliente.length)?v.origensCliente:['Não informado'];
+      ors.forEach(o=>{
+        if(!orig[o])orig[o]={nome:o,qtd:0,total:0,clientes:new Set()};
+        orig[o].qtd++;orig[o].total+=Number(v.valor_liquido||0);
+        if(v.cliente&&v.cliente.id)orig[o].clientes.add(v.cliente.id);
+      });
+    });
+    const list=Object.values(orig).sort((a,b)=>b.qtd-a.qtd);
+    const maxQtd=list[0]?.qtd||1;
+    const cores=['#3B82C4','#22C55E','#F59E0B','#EC4899','#8B5CF6','#06B6D4','#EF4444','#A78BFA','#FCD34D','#86EFAC'];
+    const totalVendas=list.reduce((s,o)=>s+o.qtd,0);
+    document.getElementById('origens-content').innerHTML=`
+      <div class="g2" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-title">📊 Por volume de vendas</div>
+          ${list.slice(0,10).map((o,i)=>`
+            <div class="origem-bar">
+              <div style="font-size:12px;color:var(--text2);width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">${o.nome}</div>
+              <div style="flex:1;background:rgba(11,31,58,.5);border-radius:4px;height:8px;overflow:hidden">
+                <div class="origem-fill" style="width:${(o.qtd/maxQtd)*100}%;background:${cores[i%cores.length]}"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text3);width:50px;text-align:right;flex-shrink:0">${o.qtd} (${((o.qtd/totalVendas)*100).toFixed(0)}%)</div>
+            </div>`).join('')}
+        </div>
+        <div class="card">
+          <div class="card-title">💰 Por valor gerado</div>
+          ${list.sort((a,b)=>b.total-a.total).slice(0,10).map((o,i)=>`
+            <div class="origem-bar">
+              <div style="font-size:12px;color:var(--text2);width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">${o.nome}</div>
+              <div style="flex:1;background:rgba(11,31,58,.5);border-radius:4px;height:8px;overflow:hidden">
+                <div class="origem-fill" style="width:${(o.total/(list[0]?.total||1))*100}%;background:${cores[i%cores.length]}"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text3);width:80px;text-align:right;flex-shrink:0">${brl(o.total)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Detalhamento completo</div>
+        <div class="tw"><table>
+          <thead><tr><th>Origem</th><th>Nº Vendas</th><th>% do Total</th><th>Clientes únicos</th><th>Total gerado</th><th>Ticket médio</th></tr></thead>
+          <tbody>${list.map((o,i)=>`<tr>
+            <td><div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:${cores[i%cores.length]};flex-shrink:0"></div><span style="color:var(--text);font-weight:500">${o.nome}</span></div></td>
+            <td style="font-weight:600">${o.qtd}</td>
+            <td><span class="b b-blue">${((o.qtd/totalVendas)*100).toFixed(1)}%</span></td>
+            <td>${o.clientes.size}</td>
+            <td style="color:var(--green);font-weight:600">${brl(o.total)}</td>
+            <td>${brl(o.total/(o.qtd||1))}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>`;
+    log('origens → '+list.length+' canais',true);
+  }catch(e){log('origens erro: '+e.message,false);document.getElementById('origens-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════════════════════════════════════════
 function nav(page,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.sid-item').forEach(s=>s.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   if(el)el.classList.add('active');
-  if(page==='vendas'){setDates('v');loadVendas();}
-  if(page==='ordens'){setDates('os');loadOrdens();}
+  if(page==='bomdia')loadBomDia();
+  if(page==='dashboard')syncAll();
+  if(page==='vendas'){setDates('v-ini','v-fim');loadVendas();}
+  if(page==='ordens'){setDates('os-ini','os-fim');loadOrdens();}
+  if(page==='entregar'){setDates('ent-ini','ent-fim',90);loadEntregar();}
+  if(page==='ficha'){}
   if(page==='posvenda')loadPosvenda();
   if(page==='aniversariantes')loadAniversariantes();
+  if(page==='receitas')loadReceitas();
   if(page==='metas')loadMetas();
-  if(page==='apilog')renderApiLog();
+  if(page==='ranking')loadRanking();
+  if(page==='rfv')loadRfv();
+  if(page==='origens')loadOrigens();
 }
 
-// ── INIT ──
-function init(){
-  setDates('v');setDates('os');
-  document.getElementById('meta-valor').value=_metaValor;
-  syncAll();
-  setInterval(syncAll,30*60*1000);
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
+async function init(){
+  document.getElementById('api-ts').textContent=new Date().toLocaleTimeString('pt-BR');
+  document.getElementById('meta-valor').value=localStorage.getItem('oro_meta')||'80000';
+  await checkStatus();
+  loadBomDia();
+  setInterval(()=>{checkStatus();},15*60*1000);
 }
 init();
 </script>
