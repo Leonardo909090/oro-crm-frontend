@@ -899,6 +899,33 @@ async function buscaFicha(){
             <div style="font-size:17px;font-weight:700;color:var(--text)">${brl(totalGasto/vendas.length)}</div>
           </div>
         </div>
+        ${(()=>{
+          // Detecta tipo de produto da compra mais recente
+          const ultimaVenda=vendas[0];
+          const descs=((ultimaVenda&&ultimaVenda.itens)||[]).map(i=>((i.produto&&i.produto.descricao)||'').toLowerCase());
+          const temArmacao=descs.some(d=>d.includes('armação')||d.includes('armacao')||d.includes('óculos')||d.includes('oculos'));
+          const temLente=descs.some(d=>d.includes('lente'));
+          const temSolar=descs.some(d=>d.includes('solar'));
+          let tipo='Outro';
+          if(temSolar)tipo='Solar';
+          else if(temArmacao&&temLente)tipo='Armação+Lente';
+          else if(temArmacao)tipo='Só Armação';
+          else if(temLente)tipo='Só Lente';
+          const cross=CROSSSELL_CFG[tipo]||CROSSSELL_CFG['Outro'];
+          // Frequência (F do RFV): 1 compra / recorrente / VIP
+          const freqLabel=vendas.length===1?'1ª compra — Fidelização':vendas.length===2?'Cliente recorrente':'Cliente VIP (3+ compras)';
+          const freqCor=vendas.length===1?'var(--accent)':vendas.length===2?'var(--green)':'var(--gold)';
+          return`<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+            <div class="obs-box" style="flex:1;min-width:220px">💡 <strong>Sugestão (${cross.label}):</strong> ${cross.sugestao}
+              ${tel?`<div style="margin-top:6px"><a href="https://wa.me/55${tel.replace(/\D/g,'')}?text=${encodeURIComponent(cross.wa(c.nome))}" target="_blank"><button class="btn-sm btn-wa">💬 Enviar sugestão</button></a></div>`:''}
+            </div>
+            <div style="background:rgba(11,31,58,.5);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:0 0 auto;min-width:160px">
+              <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Classificação</div>
+              <div style="font-size:13px;font-weight:700;color:${freqCor}">${freqLabel}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:4px">Tipo última compra: <span class="b b-blue" style="font-size:9px">${tipo}</span></div>
+            </div>
+          </div>`;
+        })()}
         ${c.observacao?`<div class="obs-box" style="margin-top:10px">📝 ${c.observacao}</div>`:''}
       </div>`;
     }).join('');
@@ -930,25 +957,82 @@ function abreHistorico(r){
 // PÓS-VENDA
 // ══════════════════════════════════════════════════════════════════════════════
 const PV_CFG=[
+  {id:'dias0',label:'0 Dias',sub:'Parabéns + cuidados',icon:'🎉',cor:'#A78BFA',
+   was:[
+     (n,p)=>`Oi, ${n}! 🎉 Parabéns pela escolha do(a) ${p}! Aqui é da *ORO Óticas*.\n\nAlgumas dicas rápidas de cuidado: guarde sempre no estojo, limpe com o paninho de microfibra e evite produtos de limpeza comuns na lente.\n\nQualquer dúvida, estamos aqui! 💛`,
+     (n,p)=>`Olá, ${n}! Que alegria ter você com a gente! A partir de agora, cuido pessoalmente de tudo da sua visão e do seu estilo. Aproveite muito seu(sua) ${p}! Conte comigo 💛`,
+   ]},
+  {id:'dias7',label:'7 Dias',sub:'Check-in de adaptação',icon:'👋',cor:'#60A5FA',
+   was:[
+     (n,p)=>`Oi, linda! Só passando para saber como você está se adaptando ao seu novo óculos. Qualquer dúvida ou ajuste, eu estou aqui pra cuidar de você ♥`,
+     (n,p)=>`Me conta: a visão ficou mais confortável? Seus primeiros dias de adaptação são importantes. Se sentir qualquer diferença, vem aqui que ajustamos rapidinho 😊`,
+   ]},
   {id:'dias15',label:'15 Dias',sub:'Verificar adaptação',icon:'😊',cor:'#3B82C4',
-   wa:(n,p)=>`Olá, ${n}! 😊 Aqui é da *ORO Óticas*, sua ótica de confiança em Araruama.\n\nJá faz 15 dias desde que você levou ${p}! Passando para saber como está sendo a adaptação. Está tudo bem? Tem algum desconforto?\n\nEstamos sempre aqui para ajudar! 🤍`},
-  {id:'mes1',label:'1 Mês',sub:'Satisfação + ajuste grátis',icon:'✅',cor:'#22C55E',
-   wa:(n,p)=>`Olá, ${n}! 🌟 Da *ORO Óticas*.\n\nJá faz 1 mês desde a sua compra de ${p}! Esperamos que esteja amando seus óculos. 😄\n\nLembre-se: temos *ajuste e limpeza gratuitos* aqui na loja! Pode vir quando quiser. 🤍`},
-  {id:'dias75',label:'75 Dias',sub:'Ajuste e limpeza grátis',icon:'🔧',cor:'#F59E0B',
-   wa:(n,p)=>`Olá, ${n}! 👓 Da *ORO Óticas*!\n\nJá se passaram 75 dias desde que você comprou ${p}. Chegou a hora do *ajuste e limpeza profissional gratuitos*!\n\nQuando você pode passar? Te esperamos com muito carinho! 😊`},
-  {id:'meses6',label:'6 Meses',sub:'Manutenção semestral',icon:'🧼',cor:'#06B6D4',
-   wa:(n,p)=>`Oi, ${n}! 💙 Da *ORO Óticas*.\n\n6 meses desde que você comprou ${p}! Que tal uma *limpeza profissional e ajuste completo* — tudo grátis?\n\nÓculos bem cuidados duram muito mais. Te esperamos! 🤍`},
-  {id:'meses8',label:'8 Meses',sub:'Revisão geral',icon:'✨',cor:'#8B5CF6',
-   wa:(n,p)=>`Olá, ${n}! ✨ Da *ORO Óticas*.\n\n8 meses desde que você levou ${p}! Mais um *ajuste e limpeza grátis* — e temos novidades lindas para te mostrar! 😉\n\nQuando você pode vir?`},
-  {id:'meses10',label:'10 Meses',sub:'Antes do vencimento',icon:'🔩',cor:'#EC4899',
-   wa:(n,p)=>`Oi, ${n}! 💕 Da *ORO Óticas*.\n\n10 meses desde que você comprou ${p}! *Ajuste e limpeza grátis* esperando por você. 🤍\n\n⚠️ Sua *receita vai vencer em breve*. Posso te ajudar a agendar um exame de vista! 👓`},
-  {id:'meses11',label:'11 Meses',sub:'Receita vencendo',icon:'⚠️',cor:'#F97316',
-   wa:(n,p)=>`Oi, ${n}! 👋 Da *ORO Óticas*.\n\n⚠️ Sua *receita vence no próximo mês!* Para continuar enxergando bem, é hora de renovar.\n\nPosso te ajudar a agendar ou indicar um oftalmologista. É só falar! 😊`},
-  {id:'meses12',label:'12 Meses',sub:'Receita vencida',icon:'📋',cor:'#EF4444',
-   wa:(n,p)=>`Olá, ${n}! 😊 Da *ORO Óticas*.\n\n📋 Sua *receita completou 1 ano* e precisa ser renovada! Receita vencida pode significar que seus óculos não estão mais adequados.\n\nQue tal agendar um *exame de vista*? A gente te ajuda com tudo! 💙`},
+   was:[
+     (n,p)=>`Olá, ${n}! 😊 Aqui é da *ORO Óticas*, sua ótica de confiança em Araruama.\n\nJá faz 15 dias desde que você levou ${p}! Passando para saber como está sendo a adaptação. Está tudo bem? Tem algum desconforto?\n\nEstamos sempre aqui para ajudar! 🤍`,
+   ]},
+  {id:'mes1',label:'30 Dias',sub:'Revisão gratuita',icon:'✅',cor:'#22C55E',
+   was:[
+     (n,p)=>`Seu óculos completou 30 dias! Já podemos fazer sua revisão gratuita para garantir conforto total. Quer agendar agora?`,
+     (n,p)=>`A maioria das nossas clientes sente melhoria após o ajuste de 30 dias. Quer garantir o seu também?`,
+   ]},
+  {id:'dias75',label:'75 Dias',sub:'Garantia',icon:'🔧',cor:'#F59E0B',
+   was:[
+     (n,p)=>`Passando para lembrar: sua lente continua coberta pela garantia ORO. Qualquer mínima dúvida, só me chamar ✨`,
+   ]},
+  {id:'dias120',label:'120 Dias',sub:'Tendências + moda',icon:'😍',cor:'#F472B6',
+   was:[
+     (n,p)=>`Chegaram armações que são a SUA cara! Quer ver modelos que valorizam seu formato de rosto? 😍`,
+     (n,p)=>`Aqui é da ORO! Te mostro 3 armações que combinam com você. Quer ver?`,
+   ]},
+  {id:'meses6',label:'6 Meses',sub:'Limpeza + relacionamento',icon:'🧼',cor:'#06B6D4',
+   was:[
+     (n,p)=>`Oi! Tá na hora da limpeza premium do seu óculos. Quero te receber aqui e te mostrar algumas novidades. Que dia fica melhor?`,
+   ]},
+  {id:'meses8',label:'8 Meses',sub:'Saúde visual (educação)',icon:'✨',cor:'#8B5CF6',
+   was:[
+     (n,p)=>`Olá, ${n}! ✨ Da *ORO Óticas*.\n\nComo estão seus olhos? Sentiu algum cansaço ou desconforto ao usar o computador ou celular? Cuidar da saúde visual no dia a dia faz toda diferença.\n\nQualquer coisa, conte com a gente! 💙`,
+   ]},
+  {id:'meses10',label:'10 Meses',sub:'Preview de coleção / evento VIP',icon:'🔩',cor:'#EC4899',
+   was:[
+     (n,p)=>`Oi, ${n}! 💕 Da *ORO Óticas*.\n\nTemos novidades chegando e você é uma das primeiras a saber! Que tal um preview da nova coleção antes de todo mundo? 🤍`,
+   ]},
+  {id:'meses12',label:'12 Meses',sub:'Aniversário do óculos',icon:'👀',cor:'#EF4444',
+   was:[
+     (n,p)=>`Seu óculos completou 1 ano hoje! 👀 Que tal ver como podemos atualizar seu estilo? Uma nova versão sua começa com uma nova armação.`,
+   ]},
+  {id:'meses18',label:'18 Meses',sub:'Pré-renovação',icon:'⚠️',cor:'#F97316',
+   was:[
+     (n,p)=>`Depois de 18 meses, é normal a visão cansar mais rápido e o antirreflexo perder eficiência. Quer que eu veja opções de renovação para você?`,
+     (n,p)=>`Seu óculos pode já não estar valorizando tanto seu rosto quanto antes. Queremos te mostrar novas opções que realçam sua beleza.`,
+   ]},
+  {id:'meses24',label:'24 Meses',sub:'Renovação obrigatória',icon:'📋',cor:'#DC2626',
+   was:[
+     (n,p)=>`Seu ciclo visual chegou ao fim. É hora da renovação! Quer ver as armações que separei para você?`,
+     (n,p)=>`Para manter sua visão nítida e descansada, recomendo trocar agora. Te mostro 3 opções perfeitas para seu estilo.`,
+   ]},
+  {id:'reativacao',label:'24-36 Meses',sub:'Reativação agressiva',icon:'🚨',cor:'#B91C1C',
+   was:[
+     (n,p)=>`Senti saudade de cuidar de você. Quero te mostrar alguns modelos novos que são a sua cara.`,
+     (n,p)=>`Neste tempo, sua visão provavelmente já mudou. Quer vir fazer uma avaliação para garantir seu conforto?`,
+     (n,p)=>`Preparei uma condição especial para você renovar seu óculos hoje. Posso te enviar?`,
+   ]},
 ];
 
+// Sugestões de cross-sell / upsell por tipo de produto comprado (fluxograma técnico)
+const CROSSSELL_CFG={
+  'Armação+Lente': {label:'Ciclo Óptico Completo', sugestao:'Cliente já está no ciclo de 24 meses. Em 7 dias oferecer solar; em 6 meses, kit de limpeza.', wa:(n)=>`Seu óculos está perfeito — mas posso te mostrar uma armação de reserva que combina com você?`},
+  'Só Armação':     {label:'Falta a lente ideal', sugestao:'Cliente comprou só armação — oferecer lentes (antirreflexo / blue / fotocromático).', wa:(n)=>`Falta escolher a lente ideal para seu dia a dia. Te envio comparativo técnico agora?`},
+  'Só Lente':       {label:'Armação reserva + visagismo', sugestao:'Cliente comprou só lente — oferecer armação reserva e consultoria de estilo.', wa:(n)=>`Quer uma armação nova que combine com seu rosto? Posso te sugerir alguns modelos hoje.`},
+  'Solar':          {label:'Cross para grau + fotocromático', sugestao:'Cliente comprou solar — solar não fideliza sem estímulo; oferecer lente de grau e lembrete em 120 dias.', wa:(n)=>`Já pensou ter este mesmo modelo com sua graduação? Posso te mostrar como ficaria!`},
+  'Outro':          {label:'Kit de limpeza', sugestao:'Sugerir kit de limpeza como cross-sell padrão.', wa:(n)=>`Seu óculos merece o mesmo cuidado que você dá à sua visão. Quer um kit de limpeza com 20% OFF?`},
+};
+
 let pvOpen={};
+let pvLongoLoaded=false;
+let pvLongoData={};
+let pvWaIdx={}; // índice da copy escolhida por etapa
+let pvRespondeu=JSON.parse(localStorage.getItem('oro_pv_respondeu')||'{}'); // {clienteId_etapa: 'sim'|'nao'}
 
 async function loadPosvenda(){
   document.getElementById('pv-pipe').innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px">Carregando...</div>';
@@ -959,7 +1043,24 @@ async function loadPosvenda(){
     log('pos-venda → '+r.totalPosvenda+' clientes',true);
     document.getElementById('badge-pv').textContent=r.totalPosvenda||0;
     renderPvPipe();renderPvSteps();
+    // Carrega em segundo plano os estágios de longo prazo (18m/24m/reativação)
+    carregaPvLongo();
   }catch(e){log('pv erro: '+e.message,false);document.getElementById('pv-steps').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
+}
+
+async function carregaPvLongo(){
+  if(pvLongoLoaded)return;
+  try{
+    const r=await api('/api/pos-venda-longo');
+    pvLongoData=r.etapas||{};
+    // mescla nas etapas dos estágios 18m/24m/reativação
+    ['meses18','meses24','reativacao'].forEach(k=>{
+      window._pvData[k]=pvLongoData[k]||[];
+    });
+    pvLongoLoaded=true;
+    log('pos-venda-longo → '+(r.totalPosvendaLongo||0)+' clientes (18-36m)',true);
+    renderPvPipe();renderPvSteps();
+  }catch(e){log('pv-longo erro: '+e.message,false);}
 }
 
 function pvAtivos(id){return((window._pvData&&window._pvData[id])||[]).filter(c=>!pvContacted[c.id+'_'+id]);}
@@ -995,6 +1096,25 @@ function renderPvPipe(){
   }).join('');
 }
 
+function pvRespondeuKey(cid,sid){return cid+'_'+sid;}
+function pvSetRespondeu(cid,sid,val){
+  pvRespondeu[pvRespondeuKey(cid,sid)]=val;
+  localStorage.setItem('oro_pv_respondeu',JSON.stringify(pvRespondeu));
+  renderPvSteps();
+}
+function pvGetRespondeu(cid,sid){return pvRespondeu[pvRespondeuKey(cid,sid)]||'';}
+
+function pvCopyAtual(s){
+  const idx=pvWaIdx[s.id]||0;
+  return s.was[idx%s.was.length];
+}
+function pvProximaCopy(sid){
+  const s=PV_CFG.find(x=>x.id===sid);
+  if(!s)return;
+  pvWaIdx[sid]=((pvWaIdx[sid]||0)+1)%s.was.length;
+  renderPvSteps();
+}
+
 function renderPvSteps(){
   const tot=PV_CFG.reduce((a,s)=>a+pvAtivos(s.id).length,0);
   document.getElementById('badge-pv').textContent=tot;
@@ -1002,6 +1122,10 @@ function renderPvSteps(){
     const cl=pvSorted(s.id);
     const open=pvOpen[s.id]!==false;
     const first=cl[0];
+    const isLongo=(s.id==='meses18'||s.id==='meses24'||s.id==='reativacao');
+    const aindaCarregando=isLongo&&!pvLongoLoaded;
+    const waCopy=pvCopyAtual(s);
+    const idx=(pvWaIdx[s.id]||0)%s.was.length;
     return`<div class="pv-step" id="step-${s.id}" style="background:${s.cor}0d;border-color:${s.cor}30">
       <div class="pv-hdr" onclick="togglePv('${s.id}')">
         <div class="pv-icon" style="background:${s.cor}18;border:1px solid ${s.cor}30">${s.icon}</div>
@@ -1009,39 +1133,55 @@ function renderPvSteps(){
           <div class="pv-title" style="color:${s.cor}">${s.label} — ${s.sub}</div>
           <div class="pv-desc">Clique para ligar/enviar mensagem</div>
         </div>
-        <div class="pv-cnt" style="color:${cl.length>0?s.cor:'var(--text3)'}">${cl.length}</div>
+        <div class="pv-cnt" style="color:${cl.length>0?s.cor:'var(--text3)'}">${aindaCarregando?'…':cl.length}</div>
         <span class="pv-chev ${open?'open':''}">▼</span>
       </div>
       <div class="pv-body ${open?'open':''}">
-        ${cl.length===0
+        ${aindaCarregando
+          ?'<div style="text-align:center;padding:18px;color:var(--text3);font-size:13px"><div class="spinner" style="margin:0 auto 8px"></div>Carregando histórico de longo prazo...</div>'
+          :cl.length===0
           ?'<div style="text-align:center;padding:18px;color:var(--text3);font-size:13px">✓ Nenhum cliente pendente</div>'
           :`<div class="wa-box">
-              <div class="wa-lbl">💬 Mensagem sugerida — ${first?first.nome:'[cliente]'}</div>
-              <div id="wa-${s.id}" style="white-space:pre-line;font-size:13px;line-height:1.7">${s.wa(first?first.nome:'[Nome]',first?first.produto:'[produto]')}</div>
+              <div class="wa-lbl" style="display:flex;justify-content:space-between;align-items:center">
+                <span>💬 Mensagem sugerida — ${first?first.nome:'[cliente]'}${s.was.length>1?` (opção ${idx+1}/${s.was.length})`:''}</span>
+                ${s.was.length>1?`<button class="wa-copy" style="position:static;background:rgba(59,130,196,.15);border-color:rgba(59,130,196,.3);color:var(--accent)" onclick="pvProximaCopy('${s.id}')">🔄 Outra opção</button>`:''}
+              </div>
+              <div id="wa-${s.id}" style="white-space:pre-line;font-size:13px;line-height:1.7;margin-top:6px">${waCopy(first?first.nome:'[Nome]',first?first.produto:'[produto]')}</div>
               <button class="wa-copy" onclick="copiarWa('${s.id}')">Copiar</button>
             </div>
             <div class="tw" style="padding:0 0 4px">
               <table>
                 <thead><tr>
                   <th onclick="pvSortBy('${s.id}','nome')" class="${(pvSortState[s.id]||{}).col==='nome'?'sorted':''}">Nome ${pvArrow(s.id,'nome')}</th>
-                  <th>Telefone</th><th>Produto</th>
+                  <th>Telefone</th><th>Produto</th><th>Tipo</th>
                   <th onclick="pvSortBy('${s.id}','diasDesdeCompra')" class="${(pvSortState[s.id]||{}).col==='diasDesdeCompra'?'sorted':''}">Dias ${pvArrow(s.id,'diasDesdeCompra')}</th>
                   <th onclick="pvSortBy('${s.id}','responsavel')" class="${(pvSortState[s.id]||{}).col==='responsavel'?'sorted':''}">Vendedora ${pvArrow(s.id,'responsavel')}</th>
+                  <th>Respondeu?</th>
                   <th>Ações</th>
                 </tr></thead>
-                <tbody>${cl.map(c=>`<tr id="pvrow-${c.id}_${s.id}">
+                <tbody>${cl.map(c=>{
+                  const resp=pvGetRespondeu(c.id,s.id);
+                  const tipo=c.tipoProduto||'Outro';
+                  return`<tr id="pvrow-${c.id}_${s.id}">
                   <td style="color:var(--text);font-weight:500">${c.nome}</td>
                   <td style="font-size:12px">${c.telefone||'—'}</td>
-                  <td style="font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.produto}</td>
+                  <td style="font-size:11px;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.produto}</td>
+                  <td><span class="b b-blue" style="font-size:9px">${tipo}</span></td>
                   <td style="font-weight:600;color:${s.cor}">${c.diasDesdeCompra}d</td>
                   <td style="font-size:12px">${c.responsavel}</td>
+                  <td>
+                    <div style="display:flex;gap:3px">
+                      <button class="btn-sm" style="padding:3px 8px;${resp==='sim'?'background:rgba(34,197,94,.25);border-color:rgba(34,197,94,.5);color:#86EFAC':'background:transparent;border-color:var(--border2);color:var(--text3)'}" onclick="pvSetRespondeu('${c.id}','${s.id}','sim')" title="Cliente respondeu">✓ Sim</button>
+                      <button class="btn-sm" style="padding:3px 8px;${resp==='nao'?'background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.4);color:#FCA5A5':'background:transparent;border-color:var(--border2);color:var(--text3)'}" onclick="pvSetRespondeu('${c.id}','${s.id}','nao')" title="Cliente não respondeu">✗ Não</button>
+                    </div>
+                  </td>
                   <td>
                     <div style="display:flex;gap:4px">
                       <button class="btn-sm btn-wa" onclick="abreWaModal('${s.id}',${JSON.stringify(c).replace(/'/g,'&#39;')})">💬</button>
                       <button class="btn-sm btn-out" onclick="pvMarcar('${s.id}','${c.id}')">Contatar</button>
                     </div>
                   </td>
-                </tr>`).join('')}</tbody>
+                </tr>`;}).join('')}</tbody>
               </table>
             </div>`
         }
@@ -1053,22 +1193,42 @@ function renderPvSteps(){
 function pvMarcar(sid,cid){pvContacted[cid+'_'+sid]=true;renderPvPipe();renderPvSteps();}
 function togglePv(id){pvOpen[id]=!(pvOpen[id]!==false);document.querySelector(`#step-${id} .pv-body`)?.classList.toggle('open');document.querySelector(`#step-${id} .pv-chev`)?.classList.toggle('open');}
 function scrollToStep(id){document.getElementById('step-'+id)?.scrollIntoView({behavior:'smooth',block:'start'});}
-function copiarWa(id){const el=document.getElementById('wa-'+id);if(!el)return;navigator.clipboard.writeText(el.innerText).then(()=>{const b=el.parentElement.querySelector('.wa-copy');if(b){b.textContent='✓ Copiado!';setTimeout(()=>b.textContent='Copiar',2000);}});}
+function copiarWa(id){const el=document.getElementById('wa-'+id);if(!el)return;navigator.clipboard.writeText(el.innerText).then(()=>{const btns=el.parentElement.querySelectorAll('.wa-copy');const b=btns[btns.length-1];if(b){const old=b.textContent;b.textContent='✓ Copiado!';setTimeout(()=>b.textContent=old,2000);}});}
 
+let _modalCopyIdx=0;
 function abreWaModal(sid,c){
   const s=PV_CFG.find(x=>x.id===sid);
   if(!s)return;
-  const msg=s.wa(c.nome||'Cliente',c.produto||'produto');
+  _modalCopyIdx=pvWaIdx[sid]||0;
+  window._modalSid=sid;
+  window._modalCliente=c;
+  renderModalWa();
+  document.getElementById('modal-wa').classList.add('open');
+}
+
+function renderModalWa(){
+  const sid=window._modalSid,c=window._modalCliente;
+  const s=PV_CFG.find(x=>x.id===sid);
+  if(!s||!c)return;
+  const idx=_modalCopyIdx%s.was.length;
+  const msg=s.was[idx](c.nome||'Cliente',c.produto||'produto');
+  const cross=CROSSSELL_CFG[c.tipoProduto]||CROSSSELL_CFG['Outro'];
   document.getElementById('mwa-title').textContent='💬 '+c.nome;
   document.getElementById('mwa-body').innerHTML=`
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Etapa: <strong style="color:${s.cor}">${s.label}</strong> · Tel: <strong style="color:var(--text)">${c.telefone||'—'}</strong> · ${c.diasDesdeCompra}d desde a compra</div>
-    <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:13px;white-space:pre-line;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:13px" id="modal-msg">${msg}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Etapa: <strong style="color:${s.cor}">${s.label}</strong> · Tel: <strong style="color:var(--text)">${c.telefone||'—'}</strong> · ${c.diasDesdeCompra}d desde a compra · <span class="b b-blue" style="font-size:9px">${c.tipoProduto||'Outro'}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--text3)">${s.was.length>1?`Mensagem ${idx+1} de ${s.was.length}`:'Mensagem sugerida'}</span>
+      ${s.was.length>1?`<button class="wa-copy" style="position:static;background:rgba(59,130,196,.15);border-color:rgba(59,130,196,.3);color:var(--accent)" onclick="_modalCopyIdx=(_modalCopyIdx+1)%${s.was.length};renderModalWa()">🔄 Outra opção</button>`:''}
+    </div>
+    <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:13px;white-space:pre-line;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px" id="modal-msg">${msg}</div>
+    <div class="obs-box" style="margin-bottom:13px">💡 <strong>Sugestão de venda (${cross.label}):</strong> ${cross.sugestao}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${c.telefone?`<a href="https://wa.me/55${(c.telefone||'').replace(/\D/g,'')}" target="_blank" style="text-decoration:none"><button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">💬 Abrir WhatsApp</button></a>`:''}
+      ${c.telefone?`<a href="https://wa.me/55${(c.telefone||'').replace(/\D/g,'')}?text=${encodeURIComponent(msg)}" target="_blank" style="text-decoration:none"><button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">💬 Abrir no WhatsApp</button></a>`:'<span style="font-size:11px;color:var(--text3)">Cliente sem telefone cadastrado</span>'}
       <button onclick="navigator.clipboard.writeText(document.getElementById('modal-msg').innerText).then(()=>this.textContent='✓ Copiado!')" style="background:rgba(59,130,196,.15);border:1px solid rgba(59,130,196,.3);color:var(--accent);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">📋 Copiar</button>
+      <button onclick="pvSetRespondeu('${c.id}','${sid}','sim');" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✓ Respondeu</button>
+      <button onclick="pvSetRespondeu('${c.id}','${sid}','nao');" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#FCA5A5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✗ Não respondeu</button>
       <button onclick="pvMarcar('${sid}','${c.id}');closeModal();" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✓ Marcar Contatado</button>
     </div>`;
-  document.getElementById('modal-wa').classList.add('open');
 }
 function closeModal(){document.getElementById('modal-wa').classList.remove('open');}
 document.getElementById('modal-wa').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
@@ -1440,58 +1600,4 @@ async function loadOrigens(force=false){
       <div class="card">
         <div class="card-title">Detalhamento completo</div>
         <div class="tw"><table>
-          <thead><tr><th>Origem</th><th>Nº Vendas</th><th>% do Total</th><th>Clientes únicos</th><th>Total gerado</th><th>Ticket médio</th></tr></thead>
-          <tbody>${list.map((o,i)=>`<tr>
-            <td><div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:${cores[i%cores.length]};flex-shrink:0"></div><span style="color:var(--text);font-weight:500">${o.nome}</span></div></td>
-            <td style="font-weight:600">${o.qtd}</td>
-            <td><span class="b b-blue">${((o.qtd/totalVendas)*100).toFixed(1)}%</span></td>
-            <td>${o.clientes.size}</td>
-            <td style="color:var(--green);font-weight:600">${brl(o.total)}</td>
-            <td>${brl(o.total/(o.qtd||1))}</td>
-          </tr>`).join('')}</tbody>
-        </table></div>
-      </div>`;
-    log('origens → '+list.length+' canais',true);
-  }catch(e){log('origens erro: '+e.message,false);document.getElementById('origens-content').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro: '+e.message+'</div>';}
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// NAVEGAÇÃO
-// ══════════════════════════════════════════════════════════════════════════════
-function nav(page,el){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.sid-item').forEach(s=>s.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
-  if(el)el.classList.add('active');
-  if(page==='bomdia')loadBomDia();
-  if(page==='dashboard')syncAll();
-  if(page==='vendas'){setDates('v-ini','v-fim');loadVendas();}
-  if(page==='ordens'){setDates('os-ini','os-fim');loadOrdens();}
-  if(page==='entregar'){setDates('ent-ini','ent-fim',90);loadEntregar();}
-  if(page==='ficha'){}
-  if(page==='posvenda')loadPosvenda();
-  if(page==='aniversariantes')loadAniversariantes();
-  if(page==='receitas')loadReceitas();
-  if(page==='metas')loadMetas();
-  if(page==='ranking')loadRanking();
-  if(page==='rfv')loadRfv();
-  if(page==='origens')loadOrigens();
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════════════════════════════════
-async function init(){
-  document.getElementById('api-ts').textContent=new Date().toLocaleTimeString('pt-BR');
-  document.getElementById('meta-valor').value=localStorage.getItem('oro_meta')||'80000';
-  await checkStatus();
-  loadBomDia();
-  // Pré-carrega os dados de 400 dias em segundo plano (cache fica pronto
-  // para Aniversariantes, Receitas, RFV, Ficha e Origens abrirem instantâneo)
-  getVendas400();
-  setInterval(()=>{checkStatus();},15*60*1000);
-}
-init();
-</script>
-</body>
-</html>
+          <thead><tr><th>Origem</
