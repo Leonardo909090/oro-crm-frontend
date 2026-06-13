@@ -304,6 +304,14 @@ const now = new Date();
 function dAgo(n){const d=new Date(now);d.setDate(d.getDate()-n);return d.toISOString().split('T')[0];}
 function fmt(s){if(!s)return'—';try{const[y,m,d]=(s.split('T')[0]).split('-');return`${d}/${m}/${y}`;}catch{return s;}}
 function brl(v){if(!v&&v!==0)return'—';return'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+// Gera link wa.me a partir de um telefone brasileiro, evitando DDI 55 duplicado
+function waLink(tel,msg){
+  let n=(tel||'').replace(/\D/g,'');
+  if(!n)return'';
+  if(n.startsWith('0'))n=n.slice(1);
+  if(!n.startsWith('55'))n='55'+n;
+  return 'https://wa.me/'+n+(msg?'?text='+encodeURIComponent(msg):'');
+}
 function setDates(a,b,diasA=30,diasB=0){
   const ia=document.getElementById(a),ib=document.getElementById(b);
   if(ia)ia.value=dAgo(diasA);if(ib)ib.value=dAgo(diasB);
@@ -509,52 +517,46 @@ async function loadEntregar(){
     }
     log('entregar diag: '+_entregarRawInfo,true);
 
-    // Filtra OS aguardando retirada pelo cliente (lab/ajuste concluído, mas
-    // o status_detalhado ainda não é "Entregue")
+    // O status da OS fica no nível da VENDA (campos etapa_atual / status),
+    // não em itens[].ordem_servico. Considera "aguardando retirada" toda
+    // venda cujo status/etapa não seja "Entregue", "Cancelada" ou indique
+    // que ainda está em produção/laboratório.
     const prontos=[];
-    const statusEncontrados={}; // debug: conta quantas OS têm cada status_detalhado/status
+    const statusEncontrados={}; // debug: conta quantas vendas têm cada etapa_atual/status
+
     arr.forEach(v=>{
+      const etapa=(v.etapa_atual||v.status||'').toString().trim();
+      statusEncontrados[etapa||'(vazio)']=(statusEncontrados[etapa||'(vazio)']||0)+1;
+
+      const etapaLower=etapa.toLowerCase();
+      const ehEntregue = etapaLower.includes('entregue') && !etapaLower.includes('não') && !etapaLower.includes('nao');
+      const ehCancelada = etapaLower.includes('cancel');
+      const aindaEmProducao = etapaLower.includes('produção')||etapaLower.includes('producao')||etapaLower.includes('laboratório')||etapaLower.includes('laboratorio')||etapaLower.includes('enviado')||etapaLower.includes('orçamento')||etapaLower.includes('orcamento')||etapaLower.includes('aguardando autorização')||etapaLower.includes('aguardando autorizacao')||etapaLower.includes('montagem');
+
+      if(ehEntregue || ehCancelada || aindaEmProducao || !etapa) return;
+
       // Status de pagamento: tenta inferir a partir do array de formas de pagamento / status da venda
       let statusPgto='—';
-      if(v.status==='CANCELADA') statusPgto='Cancelada';
-      else if(v.formas_pagamento&&v.formas_pagamento.length) statusPgto='Pago';
+      if(v.formas_pagamento&&v.formas_pagamento.length) statusPgto='Pago';
       else statusPgto='Aguardando pagamento';
 
-      (v.itens||[]).forEach(it=>{
-        const os=it.ordem_servico;
-        if(!os) return;
-        const status=(os.status_detalhado||os.status||'').toString().trim();
-        statusEncontrados[status||'(vazio)']=(statusEncontrados[status||'(vazio)']||0)+1;
+      const produtos=(v.itens||[]).map(it=>(it.produto&&it.produto.descricao)||'').filter(Boolean).join(', ')||'—';
+      // Dias esperando = desde a data prevista de entrega (se houver), senão desde a data da venda
+      const dataBase=v.previsao_entrega||v.data;
+      const diasEsp=dataBase?Math.floor((new Date()-new Date(dataBase.split(' ')[0]))/86400000):0;
 
-        // Considera "aguardando retirada" qualquer status que não seja
-        // explicitamente "Entregue" (cobre variações como "Não Entregue",
-        // "Pronto", "Em produção" etc. ficam de fora apenas se claramente
-        // ainda não chegaram na loja — por isso checamos também se há uma
-        // data de entrega prevista já vencida ou próxima, sinal de que o
-        // produto já deveria estar na loja)
-        const statusLower=status.toLowerCase();
-        const ehEntregue = statusLower==='entregue';
-        const aindaEmProducao = statusLower.includes('produção')||statusLower.includes('producao')||statusLower.includes('laboratório')||statusLower.includes('laboratorio')||statusLower.includes('enviado');
-        if(ehEntregue || aindaEmProducao || !status) return;
-
-        // Verifica se já foi adicionado (mesmo número OS)
-        if(!prontos.find(p=>p.os_num===os.numero)){
-          // Dias esperando = desde a data da venda (proxy, já que não temos data exata de "pronto no lab")
-          const diasEsp=v.data?Math.floor((new Date()-new Date(v.data))/86400000):0;
-          prontos.push({
-            os_num:os.numero||'—', venda_num:v.numero,
-            cliente:(v.cliente&&v.cliente.nome)||'—',
-            telefone:(v.cliente&&v.cliente.telefones&&v.cliente.telefones[0]&&v.cliente.telefones[0].numero)||'',
-            produto:(it.produto&&it.produto.descricao)||'—',
-            valor:Number(v.valor_liquido||0),
-            statusPgto,
-            statusOS:status,
-            previsao:os.previsao_entrega||'',
-            vendedora:(v.funcionario&&v.funcionario.nome)||'—',
-            diasEsperando:diasEsp,
-            atrasado:diasEsp>3
-          });
-        }
+      prontos.push({
+        os_num:v.numero||'—',
+        cliente:(v.cliente&&v.cliente.nome)||'—',
+        telefone:(v.cliente&&v.cliente.telefones&&v.cliente.telefones[0]&&v.cliente.telefones[0].numero)||'',
+        produto:produtos,
+        valor:Number(v.valor_liquido||0),
+        statusPgto,
+        statusOS:etapa,
+        previsao:v.previsao_entrega||'',
+        vendedora:(v.funcionario&&v.funcionario.nome)||'—',
+        diasEsperando:Math.max(diasEsp,0),
+        atrasado:diasEsp>3
       });
     });
     _entregarData=prontos;
@@ -613,7 +615,7 @@ function renderEntregar(){
         <td><span style="font-weight:600;color:${p.atrasado?'var(--red)':p.diasEsperando>1?'var(--amber)':'var(--green)'}">${p.diasEsperando}d</span></td>
         <td style="font-size:12px">${p.vendedora}</td>
         <td>
-          ${p.telefone?`<a href="https://wa.me/55${p.telefone.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, '+p.cliente.split(' ')[0]+'! 😊 Aqui é da *ORO Óticas*. Seu(sua) '+p.produto+' está pronto para retirada! Pode vir buscar quando quiser. Te esperamos com carinho! 🤍')}" target="_blank"><button class="btn-sm btn-wa">💬 Avisar</button></a>`:'—'}
+          ${p.telefone?`<a href="${waLink(p.telefone,'Olá, '+p.cliente.split(' ')[0]+'! 😊 Aqui é da *ORO Óticas*. Seu(sua) '+p.produto+' está pronto para retirada! Pode vir buscar quando quiser. Te esperamos com carinho! 🤍')}" target="_blank"><button class="btn-sm btn-wa">💬 Avisar</button></a>`:'—'}
         </td>
       </tr>`).join('')}</tbody></table></div>`;
 }
@@ -933,7 +935,7 @@ function renderModalWa(){
     <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:10px;padding:13px;white-space:pre-line;font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px" id="modal-msg">${msg}</div>
     <div class="obs-box" style="margin-bottom:13px">💡 <strong>Sugestão de venda (${cross.label}):</strong> ${cross.sugestao}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${c.telefone?`<a href="https://wa.me/55${(c.telefone||'').replace(/\D/g,'')}?text=${encodeURIComponent(msg)}" target="_blank" style="text-decoration:none"><button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">💬 Abrir no WhatsApp</button></a>`:'<span style="font-size:11px;color:var(--text3)">Cliente sem telefone cadastrado</span>'}
+      ${c.telefone?`<a href="${waLink(c.telefone,msg)}" target="_blank" style="text-decoration:none"><button style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">💬 Abrir no WhatsApp</button></a>`:'<span style="font-size:11px;color:var(--text3)">Cliente sem telefone cadastrado</span>'}
       <button onclick="navigator.clipboard.writeText(document.getElementById('modal-msg').innerText).then(()=>this.textContent='✓ Copiado!')" style="background:rgba(59,130,196,.15);border:1px solid rgba(59,130,196,.3);color:var(--accent);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">📋 Copiar</button>
       <button onclick="pvSetRespondeu('${c.id}','${sid}','sim');" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#86EFAC;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✓ Respondeu</button>
       <button onclick="pvSetRespondeu('${c.id}','${sid}','nao');" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#FCA5A5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">✗ Não respondeu</button>
@@ -980,7 +982,7 @@ async function loadAniversariantes(force=false){
           <div style="font-size:12px;color:var(--text3);margin-top:2px">📞 ${c.tel||'Sem telefone'}</div>
         </div>
         ${c.idade?`<div style="font-size:20px;font-weight:700;color:#F9A8D4;margin-right:8px">${c.idade}</div>`:''}
-        ${c.tel?`<a href="https://wa.me/55${c.tel.replace(/\D/g,'')}&text=${encodeURIComponent('Olá, '+c.nome.split(' ')[0]+'! Aqui é da *ORO Óticas*. Passando para desejar um *Feliz Aniversário*! 🎂🎉 Que seu dia seja maravilhoso! Conte sempre com a gente. 🤍')}" target="_blank" style="text-decoration:none"><button style="background:rgba(236,72,153,.15);border:1px solid rgba(236,72,153,.3);color:#F9A8D4;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">🎂 Felicitar</button></a>`:''}
+        ${c.tel?`<a href="${waLink(c.tel,'Olá, '+c.nome.split(' ')[0]+'! Aqui é da *ORO Óticas*. Passando para desejar um *Feliz Aniversário*! 🎂🎉 Que seu dia seja maravilhoso! Conte sempre com a gente. 🤍')}" target="_blank" style="text-decoration:none"><button style="background:rgba(236,72,153,.15);border:1px solid rgba(236,72,153,.3);color:#F9A8D4;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600">🎂 Felicitar</button></a>`:''}
       </div>`;
     }).join('')}`;
     log('Aniversariantes → '+aniv.length,true);
@@ -1053,7 +1055,7 @@ function renderReceitas(){
         <td>${fmt(r.vence)}</td>
         <td><span style="font-weight:600;color:${r.diasParaVencer<=7?'var(--red)':r.diasParaVencer<=30?'var(--amber)':'var(--text2)'}">${r.diasParaVencer}d</span></td>
         <td style="font-size:12px">${r.vendedora}</td>
-        <td>${r.tel?`<a href="https://wa.me/55${r.tel.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, '+r.nome.split(' ')[0]+'! 👋 Da *ORO Óticas*.\n\n⏳ Sua receita de óculos vence em '+r.diasParaVencer+' dias! Para continuar enxergando bem, é importante renovar.\n\nPodemos te ajudar a agendar um exame de vista ou indicar um oftalmologista. Pode contar com a gente! 😊')}" target="_blank"><button class="btn-sm btn-wa">💬</button></a>`:'—'}</td>
+        <td>${r.tel?`<a href="${waLink(r.tel,'Olá, '+r.nome.split(' ')[0]+'! 👋 Da *ORO Óticas*.\n\n⏳ Sua receita de óculos vence em '+r.diasParaVencer+' dias! Para continuar enxergando bem, é importante renovar.\n\nPodemos te ajudar a agendar um exame de vista ou indicar um oftalmologista. Pode contar com a gente! 😊')}" target="_blank"><button class="btn-sm btn-wa">💬</button></a>`:'—'}</td>
       </tr>`).join('')}</tbody>
     </table></div></div>`;
 }
@@ -1193,7 +1195,7 @@ function renderRfvTab(lista){
             </div>
           </td>
           <td style="font-size:11px">${fmt(c.ultimaFmt)}</td>
-          <td>${c.tel?`<a href="https://wa.me/55${c.tel.replace(/\D/g,'')}" target="_blank"><button class="btn-sm btn-wa">💬</button></a>`:'—'}</td>
+          <td>${c.tel?`<a href="${waLink(c.tel)}" target="_blank"><button class="btn-sm btn-wa">💬</button></a>`:'—'}</td>
         </tr>`;
       }).join('')}</tbody></table></div>`;
 }
