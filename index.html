@@ -476,12 +476,23 @@ async function loadBomDia(){
 // ══════════════════════════════════════════════════════════════════════════════
 async function loadEntregar(){
   document.getElementById('entregar-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
+  _entregarRawInfo='';
   try{
     // Busca um período fixo de 90 dias — cobre o tempo típico que uma OS
     // pode ficar "Não Entregue" (aguardando retirada pelo cliente)
     const ini=dAgo(90), fim=dAgo(0);
     const r=await api('/api/ordens?inicio='+ini+'&fim='+fim);
     let arr=Array.isArray(r)?r:(r.data||r.ordens||[]);
+    _entregarRawInfo='A API retornou '+(Array.isArray(r)?'um array com '+r.length+' venda(s)':'um objeto com chaves: ['+Object.keys(r||{}).join(', ')+'] → '+arr.length+' venda(s) extraída(s)')+'.';
+    if(arr.length){
+      const v0=arr[0];
+      const itensCount=(v0.itens||[]).length;
+      const osInfo=(v0.itens||[]).map(it=>it.ordem_servico?(it.ordem_servico.status_detalhado||it.ordem_servico.status||'(sem status)'):'(sem ordem_servico)').join(' | ')||'(sem itens)';
+      _entregarRawInfo+=' Exemplo — venda #'+v0.numero+' tem '+itensCount+' item(ns), status de OS: '+osInfo;
+    } else {
+      _entregarRawInfo+=' Nenhuma venda retornada no período de 90 dias — verifique se o backend está respondendo corretamente.';
+    }
+    log('entregar diag: '+_entregarRawInfo,true);
 
     // Filtra OS aguardando retirada pelo cliente (lab/ajuste concluído, mas
     // o status_detalhado ainda não é "Entregue")
@@ -541,19 +552,21 @@ async function loadEntregar(){
 
 let _entregarData=[];
 let _entregarDebug={};
+let _entregarRawInfo='';
 function renderEntregar(){
   const prontos=genSort('entregar',_entregarData,'diasEsperando',-1);
   if(!prontos.length){
     const debugRows=Object.entries(_entregarDebug).sort((a,b)=>b[1]-a[1]);
     document.getElementById('entregar-content').innerHTML=`
       <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">✓ Nenhum óculos aguardando retirada</div>
-      ${debugRows.length?`<div class="notice" style="margin-top:0">
-        <strong>🔍 Diagnóstico:</strong> nos últimos 90 dias, os status de OS encontrados foram:
-        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+      <div class="notice" style="margin-top:0">
+        <strong>🔍 Diagnóstico:</strong> ${_entregarRawInfo}
+        ${debugRows.length?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Status de OS encontrados nos últimos 90 dias:</div>
           ${debugRows.map(([st,n])=>`<div style="font-size:12px"><span class="b b-blue" style="margin-right:6px">${n}x</span> "${st}"</div>`).join('')}
-        </div>
+        </div>`:''}
         <div style="margin-top:8px;font-size:11px;color:var(--text3)">Se algum desses status representa "pronto, aguardando retirada" e não está aparecendo na lista, me avise qual é o texto exato para eu ajustar o filtro.</div>
-      </div>`:''}`;
+      </div>`;
     return;
   }
   const atrasados=prontos.filter(p=>p.atrasado).length;
