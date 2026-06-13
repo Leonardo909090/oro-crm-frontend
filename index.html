@@ -339,7 +339,7 @@ tr:hover td{background:rgba(59,130,196,.04);}
 <div class="page" id="page-aniversariantes">
   <div class="ph">
     <div><div class="ph-title">Aniversariantes 🎂</div><div class="ph-sub">Clientes que fazem aniversário hoje</div></div>
-    <button class="btn-r" onclick="loadAniversariantes()">Atualizar</button>
+    <button class="btn-r" onclick="loadAniversariantes(true)">Atualizar</button>
   </div>
   <div id="aniv-content"><div class="lc"><div class="spinner"></div></div></div>
 </div>
@@ -348,7 +348,7 @@ tr:hover td{background:rgba(59,130,196,.04);}
 <div class="page" id="page-receitas">
   <div class="ph">
     <div><div class="ph-title">Receitas Vencendo ⏳</div><div class="ph-sub">Clientes com receita prestes a vencer nos próximos 30 dias</div></div>
-    <button class="btn-r" onclick="loadReceitas()">Atualizar</button>
+    <button class="btn-r" onclick="loadReceitas(true)">Atualizar</button>
   </div>
   <div id="receitas-content"><div class="lc"><div class="spinner"></div></div></div>
 </div>
@@ -382,7 +382,7 @@ tr:hover td{background:rgba(59,130,196,.04);}
 <div class="page" id="page-rfv">
   <div class="ph">
     <div><div class="ph-title">Análise RFV</div><div class="ph-sub">Recência · Frequência · Valor — o que fazer com cada segmento</div></div>
-    <button class="btn-r" onclick="loadRfv()">Atualizar</button>
+    <button class="btn-r" onclick="loadRfv(true)">Atualizar</button>
   </div>
   <div id="rfv-resumo" style="margin-bottom:14px"></div>
   <div class="card"><div id="rfv-content"><div class="lc"><div class="spinner"></div></div></div></div>
@@ -392,7 +392,7 @@ tr:hover td{background:rgba(59,130,196,.04);}
 <div class="page" id="page-origens">
   <div class="ph">
     <div><div class="ph-title">Origem dos Clientes 📊</div><div class="ph-sub">De onde vêm seus clientes — e quais canais trazem maior valor</div></div>
-    <button class="btn-r" onclick="loadOrigens()">Atualizar</button>
+    <button class="btn-r" onclick="loadOrigens(true)">Atualizar</button>
   </div>
   <div id="origens-content"><div class="lc"><div class="spinner"></div></div></div>
 </div>
@@ -442,7 +442,10 @@ function duFaltam(ano,mes,dia){const dim=new Date(ano,mes+1,0).getDate();let t=0
 let LOGS=[];
 let pvContacted={};
 let pvSortState={};
-let _vendas400=null; // cache
+let _vendas400=null; // cache de dados
+let _vendas400Ts=0;  // timestamp do cache
+let _vendas400Promise=null; // promise em andamento (evita chamadas duplicadas)
+const VENDAS400_TTL=15*60*1000; // 15 minutos
 
 // ══════════════════════════════════════════════════════════════════════════════
 // API
@@ -802,20 +805,37 @@ async function loadEntregar(){
 // ══════════════════════════════════════════════════════════════════════════════
 // FICHA DO CLIENTE
 // ══════════════════════════════════════════════════════════════════════════════
-async function getVendas400(){
-  if(_vendas400)return _vendas400;
-  let all=[];
-  for(let offset=0;offset<400;offset+=30){
-    const fim=new Date(now);fim.setDate(fim.getDate()-offset);
-    const ini=new Date(now);ini.setDate(ini.getDate()-(offset+30));
-    try{
-      const r=await api('/api/vendas?inicio='+ini.toISOString().split('T')[0]+'&fim='+fim.toISOString().split('T')[0]);
-      const l=Array.isArray(r)?r:(r.data||r.vendas||[]);
-      if(l.length)all=all.concat(l);
-    }catch(e){}
-  }
-  _vendas400=all;
-  return all;
+async function getVendas400(forceRefresh=false){
+  const cacheValido=_vendas400&&(Date.now()-_vendas400Ts)<VENDAS400_TTL;
+  if(cacheValido&&!forceRefresh)return _vendas400;
+  if(_vendas400Promise)return _vendas400Promise; // já tem uma busca em andamento, reaproveita
+
+  _vendas400Promise=(async()=>{
+    // Monta as 14 janelas de 30 dias e busca todas em paralelo
+    const janelas=[];
+    for(let offset=0;offset<400;offset+=30){
+      const fim=new Date(now);fim.setDate(fim.getDate()-offset);
+      const ini=new Date(now);ini.setDate(ini.getDate()-(offset+30));
+      janelas.push({ini:ini.toISOString().split('T')[0],fim:fim.toISOString().split('T')[0]});
+    }
+    const resultados=await Promise.allSettled(
+      janelas.map(j=>api('/api/vendas?inicio='+j.ini+'&fim='+j.fim))
+    );
+    let all=[];
+    resultados.forEach(r=>{
+      if(r.status==='fulfilled'){
+        const l=Array.isArray(r.value)?r.value:(r.value.data||r.value.vendas||[]);
+        if(l.length)all=all.concat(l);
+      }
+    });
+    _vendas400=all;
+    _vendas400Ts=Date.now();
+    _vendas400Promise=null;
+    log('vendas400 cache atualizado → '+all.length+' registros',true);
+    return all;
+  })();
+
+  return _vendas400Promise;
 }
 
 async function buscaFicha(){
@@ -824,6 +844,7 @@ async function buscaFicha(){
   document.getElementById('ficha-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   try{
     const all=await getVendas400();
+    // (busca usa cache normalmente; força refresh só pelo botão Atualizar das outras páginas)
     // Filtra por nome, CPF ou telefone
     const vCliente={};
     all.forEach(v=>{
@@ -1056,11 +1077,11 @@ document.getElementById('modal-ficha').addEventListener('click',e=>{if(e.target=
 // ══════════════════════════════════════════════════════════════════════════════
 // ANIVERSARIANTES
 // ══════════════════════════════════════════════════════════════════════════════
-async function loadAniversariantes(){
+async function loadAniversariantes(force=false){
   document.getElementById('aniv-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   const mesH=String(now.getMonth()+1).padStart(2,'0'),diaH=String(now.getDate()).padStart(2,'0');
   try{
-    const all=await getVendas400();
+    const all=await getVendas400(force);
     const visto=new Set(),aniv=[];
     all.forEach(v=>{
       if(!v.cliente)return;
@@ -1100,10 +1121,10 @@ async function loadAniversariantes(){
 // ══════════════════════════════════════════════════════════════════════════════
 // RECEITAS VENCENDO
 // ══════════════════════════════════════════════════════════════════════════════
-async function loadReceitas(){
+async function loadReceitas(force=false){
   document.getElementById('receitas-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   try{
-    const all=await getVendas400();
+    const all=await getVendas400(force);
     const visto=new Set(),rec=[];
     all.forEach(v=>{
       if(!v.cliente)return;
@@ -1298,11 +1319,11 @@ function rfvSeg(sc){
   return'hibernando';
 }
 
-async function loadRfv(){
+async function loadRfv(force=false){
   document.getElementById('rfv-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   document.getElementById('rfv-resumo').innerHTML='';
   try{
-    const all=await getVendas400();
+    const all=await getVendas400(force);
     log('RFV: '+all.length+' vendas',true);
     const clMap={};
     all.forEach(v=>{
@@ -1374,10 +1395,10 @@ function renderRfvTab(lista){
 // ══════════════════════════════════════════════════════════════════════════════
 // ORIGENS
 // ══════════════════════════════════════════════════════════════════════════════
-async function loadOrigens(){
+async function loadOrigens(force=false){
   document.getElementById('origens-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   try{
-    const all=await getVendas400();
+    const all=await getVendas400(force);
     const orig={};
     all.forEach(v=>{
       const ors=(v.origensCliente&&v.origensCliente.length)?v.origensCliente:['Não informado'];
@@ -1465,6 +1486,9 @@ async function init(){
   document.getElementById('meta-valor').value=localStorage.getItem('oro_meta')||'80000';
   await checkStatus();
   loadBomDia();
+  // Pré-carrega os dados de 400 dias em segundo plano (cache fica pronto
+  // para Aniversariantes, Receitas, RFV, Ficha e Origens abrirem instantâneo)
+  getVendas400();
   setInterval(()=>{checkStatus();},15*60*1000);
 }
 init();
