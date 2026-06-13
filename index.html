@@ -489,6 +489,21 @@ async function loadEntregar(){
       const itensCount=(v0.itens||[]).length;
       const osInfo=(v0.itens||[]).map(it=>it.ordem_servico?(it.ordem_servico.status_detalhado||it.ordem_servico.status||'(sem status)'):'(sem ordem_servico)').join(' | ')||'(sem itens)';
       _entregarRawInfo+=' Exemplo — venda #'+v0.numero+' tem '+itensCount+' item(ns), status de OS: '+osInfo;
+      _entregarRawInfo+='<br><br><strong>Chaves da venda:</strong> ['+Object.keys(v0).join(', ')+']';
+      if(itensCount){
+        _entregarRawInfo+='<br><strong>Chaves do 1º item:</strong> ['+Object.keys(v0.itens[0]).join(', ')+']';
+        // Procura qualquer chave que pareça ter relação com OS/entrega/status
+        Object.keys(v0.itens[0]).forEach(k=>{
+          const val=v0.itens[0][k];
+          if(val && typeof val==='object' && !Array.isArray(val)){
+            _entregarRawInfo+='<br><strong>itens[0].'+k+':</strong> ['+Object.keys(val).join(', ')+'] = '+JSON.stringify(val).slice(0,300);
+          }
+        });
+      }
+      // Também verifica se a venda tem alguma chave relacionada a OS no nível raiz
+      ['ordem_servico','ordens_servico','os','status_os','status_entrega'].forEach(k=>{
+        if(v0[k]!==undefined) _entregarRawInfo+='<br><strong>venda.'+k+':</strong> '+JSON.stringify(v0[k]).slice(0,300);
+      });
     } else {
       _entregarRawInfo+=' Nenhuma venda retornada no período de 90 dias — verifique se o backend está respondendo corretamente.';
     }
