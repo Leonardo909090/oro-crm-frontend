@@ -348,13 +348,22 @@ const VENDAS400_TTL=15*60*1000; // 15 minutos
 // ══════════════════════════════════════════════════════════════════════════════
 // API
 // ══════════════════════════════════════════════════════════════════════════════
-async function api(path,timeoutMs=25000){
+async function api(path,timeoutMs){
+  // Endpoints pesados (pós-venda, que faz várias chamadas à SSótica e pode
+  // demorar mais, especialmente se o backend do Render estiver "dormindo")
+  // recebem um timeout maior por padrão.
+  if(timeoutMs===undefined){
+    timeoutMs=(path.includes('pos-venda'))?60000:30000;
+  }
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),timeoutMs);
   try{
     const r=await fetch(BACKEND+path,{signal:ctrl.signal});
     if(!r.ok) throw new Error('HTTP '+r.status);
     return await r.json();
+  }catch(e){
+    if(e.name==='AbortError') throw new Error('Tempo de resposta excedido ('+(timeoutMs/1000)+'s) — o servidor pode estar iniciando, tente novamente em alguns segundos');
+    throw e;
   }finally{
     clearTimeout(t);
   }
