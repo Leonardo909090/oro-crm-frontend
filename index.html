@@ -338,7 +338,7 @@ function genSortedClass(tableId,col){
   const s=_sortState[tableId];
   return s&&s.col===col?'sorted':'';
 }
-let pvContacted={};
+let pvContacted=JSON.parse(localStorage.getItem('oro_pv_contacted')||'{}'); // {clienteId_etapa: true}
 let pvSortState={};
 let _vendas400=null; // cache de dados
 let _vendas400Ts=0;  // timestamp do cache
@@ -828,7 +828,7 @@ function renderPvSteps(){
   }).join('');
 }
 
-function pvMarcar(sid,cid){pvContacted[cid+'_'+sid]=true;renderPvPipe();renderPvSteps();}
+function pvMarcar(sid,cid){pvContacted[cid+'_'+sid]=true;localStorage.setItem('oro_pv_contacted',JSON.stringify(pvContacted));renderPvPipe();renderPvSteps();}
 function togglePv(id){pvOpen[id]=!(pvOpen[id]!==false);document.querySelector(`#step-${id} .pv-body`)?.classList.toggle('open');document.querySelector(`#step-${id} .pv-chev`)?.classList.toggle('open');}
 function scrollToStep(id){document.getElementById('step-'+id)?.scrollIntoView({behavior:'smooth',block:'start'});}
 function copiarWa(id){const el=document.getElementById('wa-'+id);if(!el)return;navigator.clipboard.writeText(el.innerText).then(()=>{const btns=el.parentElement.querySelectorAll('.wa-copy');const b=btns[btns.length-1];if(b){const old=b.textContent;b.textContent='✓ Copiado!';setTimeout(()=>b.textContent=old,2000);}});}
