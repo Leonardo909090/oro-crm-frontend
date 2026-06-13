@@ -889,7 +889,7 @@ function renderPvSteps(){
                   </td>
                   <td>
                     <div style="display:flex;gap:4px">
-                      <button class="btn-sm btn-wa" onclick="abreWaModal('${s.id}',${JSON.stringify(c).replace(/'/g,'&#39;')})">💬</button>
+                      <button class="btn-sm btn-wa" onclick="abreWaModal('${s.id}','${c.id}')">💬</button>
                       <button class="btn-sm btn-out" onclick="pvMarcar('${s.id}','${c.id}')">Contatar</button>
                     </div>
                   </td>
@@ -908,9 +908,12 @@ function scrollToStep(id){document.getElementById('step-'+id)?.scrollIntoView({b
 function copiarWa(id){const el=document.getElementById('wa-'+id);if(!el)return;navigator.clipboard.writeText(el.innerText).then(()=>{const btns=el.parentElement.querySelectorAll('.wa-copy');const b=btns[btns.length-1];if(b){const old=b.textContent;b.textContent='✓ Copiado!';setTimeout(()=>b.textContent=old,2000);}});}
 
 let _modalCopyIdx=0;
-function abreWaModal(sid,c){
+function abreWaModal(sid,cid){
   const s=PV_CFG.find(x=>x.id===sid);
   if(!s)return;
+  const lista=(window._pvData&&window._pvData[sid])||[];
+  const c=lista.find(x=>String(x.id)===String(cid));
+  if(!c)return;
   _modalCopyIdx=pvWaIdx[sid]||0;
   window._modalSid=sid;
   window._modalCliente=c;
