@@ -265,6 +265,13 @@ tr:hover td{background:rgba(59,130,196,.04);}
     <div><div class="ph-title">Análise RFV</div><div class="ph-sub">Recência · Frequência · Valor — o que fazer com cada segmento</div></div>
     <button class="btn-r" onclick="loadRfv(true)">Atualizar</button>
   </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">📖 O que significa cada segmento</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+      Cada cliente recebe uma nota de 1 a 5 em três critérios: <strong style="color:var(--text2)">R</strong>ecência (há quanto tempo não compra — quanto mais recente, maior a nota), <strong style="color:var(--text2)">F</strong>requência (quantas vezes já comprou) e <strong style="color:var(--text2)">V</strong>alor (quanto já gastou no total). A combinação dessas notas define o segmento abaixo.
+    </div>
+    <div id="rfv-legenda" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
   <div id="rfv-resumo" style="margin-bottom:14px"></div>
   <div class="card"><div id="rfv-content"><div class="lc"><div class="spinner"></div></div></div></div>
 </div>
@@ -476,10 +483,11 @@ async function loadEntregar(){
     const r=await api('/api/ordens?inicio='+ini+'&fim='+fim);
     let arr=Array.isArray(r)?r:(r.data||r.ordens||[]);
 
-    // Filtra OS com status_detalhado === 'Não Entregue' (pronto, aguardando o cliente retirar)
+    // Filtra OS aguardando retirada pelo cliente (lab/ajuste concluído, mas
+    // o status_detalhado ainda não é "Entregue")
     const prontos=[];
+    const statusEncontrados={}; // debug: conta quantas OS têm cada status_detalhado/status
     arr.forEach(v=>{
-      const formaPg=(v.formas_pagamento&&v.formas_pagamento[0]&&v.formas_pagamento[0].forma_pagamento)||'';
       // Status de pagamento: tenta inferir a partir do array de formas de pagamento / status da venda
       let statusPgto='—';
       if(v.status==='CANCELADA') statusPgto='Cancelada';
@@ -489,8 +497,20 @@ async function loadEntregar(){
       (v.itens||[]).forEach(it=>{
         const os=it.ordem_servico;
         if(!os) return;
-        const status=os.status_detalhado||os.status||'';
-        if(status!=='Não Entregue') return;
+        const status=(os.status_detalhado||os.status||'').toString().trim();
+        statusEncontrados[status||'(vazio)']=(statusEncontrados[status||'(vazio)']||0)+1;
+
+        // Considera "aguardando retirada" qualquer status que não seja
+        // explicitamente "Entregue" (cobre variações como "Não Entregue",
+        // "Pronto", "Em produção" etc. ficam de fora apenas se claramente
+        // ainda não chegaram na loja — por isso checamos também se há uma
+        // data de entrega prevista já vencida ou próxima, sinal de que o
+        // produto já deveria estar na loja)
+        const statusLower=status.toLowerCase();
+        const ehEntregue = statusLower==='entregue';
+        const aindaEmProducao = statusLower.includes('produção')||statusLower.includes('producao')||statusLower.includes('laboratório')||statusLower.includes('laboratorio')||statusLower.includes('enviado');
+        if(ehEntregue || aindaEmProducao || !status) return;
+
         // Verifica se já foi adicionado (mesmo número OS)
         if(!prontos.find(p=>p.os_num===os.numero)){
           // Dias esperando = desde a data da venda (proxy, já que não temos data exata de "pronto no lab")
@@ -502,6 +522,7 @@ async function loadEntregar(){
             produto:(it.produto&&it.produto.descricao)||'—',
             valor:Number(v.valor_liquido||0),
             statusPgto,
+            statusOS:status,
             previsao:os.previsao_entrega||'',
             vendedora:(v.funcionario&&v.funcionario.nome)||'—',
             diasEsperando:diasEsp,
@@ -511,6 +532,7 @@ async function loadEntregar(){
       });
     });
     _entregarData=prontos;
+    _entregarDebug=statusEncontrados;
     document.getElementById('badge-entregar').textContent=prontos.length;
     log('prontos entregar → '+prontos.length,true);
     renderEntregar();
@@ -518,10 +540,20 @@ async function loadEntregar(){
 }
 
 let _entregarData=[];
+let _entregarDebug={};
 function renderEntregar(){
   const prontos=genSort('entregar',_entregarData,'diasEsperando',-1);
   if(!prontos.length){
-    document.getElementById('entregar-content').innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">✓ Nenhum óculos aguardando retirada</div>';
+    const debugRows=Object.entries(_entregarDebug).sort((a,b)=>b[1]-a[1]);
+    document.getElementById('entregar-content').innerHTML=`
+      <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">✓ Nenhum óculos aguardando retirada</div>
+      ${debugRows.length?`<div class="notice" style="margin-top:0">
+        <strong>🔍 Diagnóstico:</strong> nos últimos 90 dias, os status de OS encontrados foram:
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          ${debugRows.map(([st,n])=>`<div style="font-size:12px"><span class="b b-blue" style="margin-right:6px">${n}x</span> "${st}"</div>`).join('')}
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">Se algum desses status representa "pronto, aguardando retirada" e não está aparecendo na lista, me avise qual é o texto exato para eu ajustar o filtro.</div>
+      </div>`:''}`;
     return;
   }
   const atrasados=prontos.filter(p=>p.atrasado).length;
@@ -535,6 +567,7 @@ function renderEntregar(){
         <th onclick="genSortBy('entregar','cliente',renderEntregar)" class="${genSortedClass('entregar','cliente')}">Cliente ${genArrow('entregar','cliente')}</th>
         <th onclick="genSortBy('entregar','telefone',renderEntregar)" class="${genSortedClass('entregar','telefone')}">Telefone ${genArrow('entregar','telefone')}</th>
         <th onclick="genSortBy('entregar','produto',renderEntregar)" class="${genSortedClass('entregar','produto')}">Produto ${genArrow('entregar','produto')}</th>
+        <th onclick="genSortBy('entregar','statusOS',renderEntregar)" class="${genSortedClass('entregar','statusOS')}">Status OS ${genArrow('entregar','statusOS')}</th>
         <th onclick="genSortBy('entregar','valor',renderEntregar)" class="${genSortedClass('entregar','valor')}">Valor ${genArrow('entregar','valor')}</th>
         <th onclick="genSortBy('entregar','statusPgto',renderEntregar)" class="${genSortedClass('entregar','statusPgto')}">Pagamento ${genArrow('entregar','statusPgto')}</th>
         <th onclick="genSortBy('entregar','diasEsperando',renderEntregar)" class="${genSortedClass('entregar','diasEsperando')}">Aguardando ${genArrow('entregar','diasEsperando')}</th>
@@ -546,6 +579,7 @@ function renderEntregar(){
         <td style="color:var(--text);font-weight:500">${p.cliente}</td>
         <td style="font-size:12px">${p.telefone||'—'}</td>
         <td style="font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.produto}</td>
+        <td><span class="b b-amber" style="font-size:9px">${p.statusOS}</span></td>
         <td style="color:var(--green);font-weight:600">${brl(p.valor)}</td>
         <td><span class="b ${p.statusPgto==='Pago'?'b-green':p.statusPgto==='Cancelada'?'b-gray':'b-amber'}">${p.statusPgto}</span></td>
         <td><span style="font-weight:600;color:${p.atrasado?'var(--red)':p.diasEsperando>1?'var(--amber)':'var(--green)'}">${p.diasEsperando}d</span></td>
@@ -1000,16 +1034,36 @@ function renderReceitas(){
 // RFV
 // ══════════════════════════════════════════════════════════════════════════════
 const RFV_SEGS=[
-  {id:'campeao',  label:'🏆 Campeão',    cls:'rfv-campeao',  acao:'Ligar para agradecer e pedir indicação'},
-  {id:'leal',     label:'💚 Leal',        cls:'rfv-leal',     acao:'Convidar para lançamentos e novidades'},
-  {id:'potencial',label:'⬆️ Potencial',   cls:'rfv-potencial',acao:'Oferecer upgrade ou segundo produto'},
-  {id:'novo',     label:'🆕 Novo',        cls:'rfv-novo',     acao:'Verificar adaptação e criar vínculo'},
-  {id:'risco',    label:'⚠️ Em Risco',   cls:'rfv-risco',    acao:'Ligar HOJE com oferta especial'},
-  {id:'inativo',  label:'😴 Inativo',    cls:'rfv-inativo',  acao:'Campanha de reativação urgente'},
-  {id:'hibernando',label:'❄️ Hibernando',cls:'rfv-hibernando',acao:'Email ou mensagem de "sentimos sua falta"'},
+  {id:'campeao',  label:'🏆 Campeão',    cls:'rfv-campeao',  acao:'Ligar para agradecer e pedir indicação',
+    desc:'Comprou recentemente, compra com frequência e tem alto valor gasto. É o melhor tipo de cliente.'},
+  {id:'leal',     label:'💚 Leal',        cls:'rfv-leal',     acao:'Convidar para lançamentos e novidades',
+    desc:'Compra com frequência e tem bom valor gasto, mas não necessariamente comprou há pouco tempo.'},
+  {id:'potencial',label:'⬆️ Potencial',   cls:'rfv-potencial',acao:'Oferecer upgrade ou segundo produto',
+    desc:'Comprou recentemente e gastou bem, mas ainda não comprou muitas vezes. Pode se tornar Campeão ou Leal.'},
+  {id:'novo',     label:'🆕 Novo',        cls:'rfv-novo',     acao:'Verificar adaptação e criar vínculo',
+    desc:'Comprou recentemente, mas é a primeira ou segunda compra. Ainda está conhecendo a loja.'},
+  {id:'risco',    label:'⚠️ Em Risco',   cls:'rfv-risco',    acao:'Ligar HOJE com oferta especial',
+    desc:'Já comprou várias vezes (era um bom cliente), mas faz tempo que não volta. Risco de perder o cliente.'},
+  {id:'inativo',  label:'😴 Inativo',    cls:'rfv-inativo',  acao:'Campanha de reativação urgente',
+    desc:'Não compra há mais de 90 dias e tem poucas compras no histórico. Precisa de um motivo para voltar.'},
+  {id:'hibernando',label:'❄️ Hibernando',cls:'rfv-hibernando',acao:'Email ou mensagem de "sentimos sua falta"',
+    desc:'Não compra há muito tempo (mais de 180 dias). Cliente praticamente esquecido — reativação de longo prazo.'},
 ];
 
 let _rfvData=null,_rfvFiltro='todos';
+
+function renderRfvLegenda(){
+  const el=document.getElementById('rfv-legenda');
+  if(!el)return;
+  el.innerHTML=RFV_SEGS.map(s=>`
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:rgba(11,31,58,.4);border-radius:8px">
+      <span class="rfv-seg ${s.cls}" style="flex-shrink:0;white-space:nowrap">${s.label}</span>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5">
+        ${s.desc}<br>
+        <span style="color:var(--text3);font-size:11px">→ <strong style="color:var(--accent)">O que fazer:</strong> ${s.acao}</span>
+      </div>
+    </div>`).join('');
+}
 
 function rfvScore(v){
   const R=v.r<=30?5:v.r<=60?4:v.r<=90?3:v.r<=180?2:1;
@@ -1129,7 +1183,7 @@ function nav(page,el){
   if(page==='posvenda')loadPosvenda();
   if(page==='aniversariantes')loadAniversariantes();
   if(page==='receitas')loadReceitas();
-  if(page==='rfv')loadRfv();
+  if(page==='rfv'){renderRfvLegenda();loadRfv();}
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
