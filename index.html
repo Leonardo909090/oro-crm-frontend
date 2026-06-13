@@ -225,15 +225,8 @@ tr:hover td{background:rgba(59,130,196,.04);}
 <!-- PRONTOS P/ ENTREGAR -->
 <div class="page" id="page-entregar">
   <div class="ph">
-    <div><div class="ph-title">Prontos para Entregar 📦</div><div class="ph-sub">OS com laboratório concluído mas cliente ainda não buscou</div></div>
+    <div><div class="ph-title">Prontos para Entregar 📦</div><div class="ph-sub">Óculos com status "Aguardando Retirada" — pronto, cliente ainda não buscou</div></div>
     <button class="btn-r" onclick="loadEntregar()">Atualizar</button>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="date-row">
-      <label>De:</label><input type="date" id="ent-ini">
-      <label>Até:</label><input type="date" id="ent-fim">
-      <button class="btn-r" onclick="loadEntregar()">Buscar</button>
-    </div>
   </div>
   <div class="card"><div id="entregar-content"><div class="lc"><div class="spinner"></div></div></div></div>
 </div>
@@ -475,28 +468,41 @@ async function loadBomDia(){
 // PRONTOS PARA ENTREGAR
 // ══════════════════════════════════════════════════════════════════════════════
 async function loadEntregar(){
-  const ini=document.getElementById('ent-ini').value||dAgo(90);
-  const fim=document.getElementById('ent-fim').value||dAgo(0);
   document.getElementById('entregar-content').innerHTML='<div class="lc"><div class="spinner"></div></div>';
   try{
+    // Busca um período fixo de 90 dias — cobre o tempo típico que uma OS
+    // pode ficar "Não Entregue" (aguardando retirada pelo cliente)
+    const ini=dAgo(90), fim=dAgo(0);
     const r=await api('/api/ordens?inicio='+ini+'&fim='+fim);
     let arr=Array.isArray(r)?r:(r.data||r.ordens||[]);
-    // Filtra OS com status Entregue pelo lab (tem data de entrega do lab = status 'E')
+
+    // Filtra OS com status_detalhado === 'Não Entregue' (pronto, aguardando o cliente retirar)
     const prontos=[];
     arr.forEach(v=>{
+      const formaPg=(v.formas_pagamento&&v.formas_pagamento[0]&&v.formas_pagamento[0].forma_pagamento)||'';
+      // Status de pagamento: tenta inferir a partir do array de formas de pagamento / status da venda
+      let statusPgto='—';
+      if(v.status==='CANCELADA') statusPgto='Cancelada';
+      else if(v.formas_pagamento&&v.formas_pagamento.length) statusPgto='Pago';
+      else statusPgto='Aguardando pagamento';
+
       (v.itens||[]).forEach(it=>{
         const os=it.ordem_servico;
-        if(!os||os.status!=='E'||!os.entrega)return;
+        if(!os) return;
+        const status=os.status_detalhado||os.status||'';
+        if(status!=='Não Entregue') return;
         // Verifica se já foi adicionado (mesmo número OS)
         if(!prontos.find(p=>p.os_num===os.numero)){
-          const diasEsp=os.entrega?Math.floor((new Date()-new Date(os.entrega.split(' ')[0].split('/').reverse().join('-')))/86400000):0;
+          // Dias esperando = desde a data da venda (proxy, já que não temos data exata de "pronto no lab")
+          const diasEsp=v.data?Math.floor((new Date()-new Date(v.data))/86400000):0;
           prontos.push({
-            os_num:os.numero, venda_num:v.numero,
+            os_num:os.numero||'—', venda_num:v.numero,
             cliente:(v.cliente&&v.cliente.nome)||'—',
             telefone:(v.cliente&&v.cliente.telefones&&v.cliente.telefones[0]&&v.cliente.telefones[0].numero)||'',
             produto:(it.produto&&it.produto.descricao)||'—',
-            entregaLab:os.entrega,
-            previsao:os.previsao_entrega,
+            valor:Number(v.valor_liquido||0),
+            statusPgto,
+            previsao:os.previsao_entrega||'',
             vendedora:(v.funcionario&&v.funcionario.nome)||'—',
             diasEsperando:diasEsp,
             atrasado:diasEsp>3
@@ -515,13 +521,13 @@ let _entregarData=[];
 function renderEntregar(){
   const prontos=genSort('entregar',_entregarData,'diasEsperando',-1);
   if(!prontos.length){
-    document.getElementById('entregar-content').innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">✓ Nenhuma OS aguardando retirada</div>';
+    document.getElementById('entregar-content').innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">✓ Nenhum óculos aguardando retirada</div>';
     return;
   }
   const atrasados=prontos.filter(p=>p.atrasado).length;
   document.getElementById('entregar-content').innerHTML=`
     ${atrasados>0?`<div class="notice" style="border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.06)">
-      ⚠️ <strong style="color:#FCA5A5">${atrasados} OS</strong> aguardam retirada há mais de 3 dias — ligar para o cliente é prioridade!
+      ⚠️ <strong style="color:#FCA5A5">${atrasados} óculos</strong> aguardam retirada há mais de 3 dias — ligar para o cliente é prioridade!
     </div>`:''}
     <div class="tw"><table>
       <thead><tr>
@@ -529,7 +535,9 @@ function renderEntregar(){
         <th onclick="genSortBy('entregar','cliente',renderEntregar)" class="${genSortedClass('entregar','cliente')}">Cliente ${genArrow('entregar','cliente')}</th>
         <th onclick="genSortBy('entregar','telefone',renderEntregar)" class="${genSortedClass('entregar','telefone')}">Telefone ${genArrow('entregar','telefone')}</th>
         <th onclick="genSortBy('entregar','produto',renderEntregar)" class="${genSortedClass('entregar','produto')}">Produto ${genArrow('entregar','produto')}</th>
-        <th onclick="genSortBy('entregar','diasEsperando',renderEntregar)" class="${genSortedClass('entregar','diasEsperando')}">Pronto há ${genArrow('entregar','diasEsperando')}</th>
+        <th onclick="genSortBy('entregar','valor',renderEntregar)" class="${genSortedClass('entregar','valor')}">Valor ${genArrow('entregar','valor')}</th>
+        <th onclick="genSortBy('entregar','statusPgto',renderEntregar)" class="${genSortedClass('entregar','statusPgto')}">Pagamento ${genArrow('entregar','statusPgto')}</th>
+        <th onclick="genSortBy('entregar','diasEsperando',renderEntregar)" class="${genSortedClass('entregar','diasEsperando')}">Aguardando ${genArrow('entregar','diasEsperando')}</th>
         <th onclick="genSortBy('entregar','vendedora',renderEntregar)" class="${genSortedClass('entregar','vendedora')}">Vendedora ${genArrow('entregar','vendedora')}</th>
         <th>Ação</th>
       </tr></thead>
@@ -537,11 +545,13 @@ function renderEntregar(){
         <td style="font-size:11px;color:var(--accent)">#${p.os_num}</td>
         <td style="color:var(--text);font-weight:500">${p.cliente}</td>
         <td style="font-size:12px">${p.telefone||'—'}</td>
-        <td style="font-size:11px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.produto}</td>
+        <td style="font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.produto}</td>
+        <td style="color:var(--green);font-weight:600">${brl(p.valor)}</td>
+        <td><span class="b ${p.statusPgto==='Pago'?'b-green':p.statusPgto==='Cancelada'?'b-gray':'b-amber'}">${p.statusPgto}</span></td>
         <td><span style="font-weight:600;color:${p.atrasado?'var(--red)':p.diasEsperando>1?'var(--amber)':'var(--green)'}">${p.diasEsperando}d</span></td>
         <td style="font-size:12px">${p.vendedora}</td>
         <td>
-          ${p.telefone?`<a href="https://wa.me/55${p.telefone.replace(/\D/g,'')}&text=${encodeURIComponent('Olá, '+p.cliente.split(' ')[0]+'! 😊 Aqui é da *ORO Óticas*. Seu(sua) '+p.produto+' está pronto para retirada! Pode vir buscar quando quiser. Te esperamos com carinho! 🤍')}" target="_blank"><button class="btn-sm btn-wa">💬 Avisar</button></a>`:'—'}
+          ${p.telefone?`<a href="https://wa.me/55${p.telefone.replace(/\D/g,'')}?text=${encodeURIComponent('Olá, '+p.cliente.split(' ')[0]+'! 😊 Aqui é da *ORO Óticas*. Seu(sua) '+p.produto+' está pronto para retirada! Pode vir buscar quando quiser. Te esperamos com carinho! 🤍')}" target="_blank"><button class="btn-sm btn-wa">💬 Avisar</button></a>`:'—'}
         </td>
       </tr>`).join('')}</tbody></table></div>`;
 }
@@ -1115,7 +1125,7 @@ function nav(page,el){
   document.getElementById('page-'+page).classList.add('active');
   if(el)el.classList.add('active');
   if(page==='bomdia')loadBomDia();
-  if(page==='entregar'){setDates('ent-ini','ent-fim',90);loadEntregar();}
+  if(page==='entregar'){loadEntregar();}
   if(page==='posvenda')loadPosvenda();
   if(page==='aniversariantes')loadAniversariantes();
   if(page==='receitas')loadReceitas();
